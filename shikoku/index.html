@@ -1120,38 +1120,53 @@ function initGoogleMap() {
     ]
   });
   var bounds = new google.maps.LatLngBounds();
-  var lineCoords = [];
   spots.forEach(function(s) {
     var pos = {lat: s.lat, lng: s.lng};
-    var marker = new google.maps.marker.AdvancedMarkerElement ? null : new google.maps.Marker({
-      position: pos,
-      map: map,
+    var marker = new google.maps.Marker({
+      position: pos, map: map,
       label: {text: s.emoji, fontSize: '1.5rem'},
       title: s.name
     });
-    if (!marker) {
-      var pin = document.createElement('div');
-      pin.style.fontSize = '1.5rem';
-      pin.style.textShadow = '0 1px 3px rgba(0,0,0,0.3)';
-      pin.textContent = s.emoji;
-      marker = new google.maps.Marker({position: pos, map: map, title: s.name});
-    }
     var infowindow = new google.maps.InfoWindow({content: '<b>'+s.name+'</b><br>'+s.detail});
     marker.addListener('click', function() { infowindow.open(map, marker); });
     bounds.extend(pos);
-    lineCoords.push(pos);
   });
-  // Draw polyline routes between consecutive stops
+  // Draw driving routes between consecutive stops with distance/time
   var routeColors = ['#4285F4', '#0F9D58', '#E85D26', '#F4B400', '#9C27B0', '#FF5722'];
-  for (var i = 0; i < lineCoords.length - 1; i++) {
-    new google.maps.Polyline({
-      path: [lineCoords[i], lineCoords[i+1]],
-      strokeColor: routeColors[i % routeColors.length],
-      strokeOpacity: 0.7,
-      strokeWeight: 4,
-      map: map
+  var directionsService = new google.maps.DirectionsService();
+  var routeItems = document.querySelectorAll('.map-route-item .map-route-detail');
+  function drawRoute(i) {
+    if (i >= spots.length - 1) return;
+    directionsService.route({
+      origin: {lat: spots[i].lat, lng: spots[i].lng},
+      destination: {lat: spots[i+1].lat, lng: spots[i+1].lng},
+      travelMode: google.maps.TravelMode.DRIVING
+    }, function(result, status) {
+      if (status === 'OK') {
+        new google.maps.DirectionsRenderer({
+          map: map, directions: result, suppressMarkers: true,
+          polylineOptions: {strokeColor: routeColors[i % routeColors.length], strokeOpacity: 0.8, strokeWeight: 5}
+        });
+        // Show distance + duration label at route midpoint
+        var leg = result.routes[0].legs[0];
+        var dist = leg.distance.text;
+        var dur = leg.duration.text;
+        var path = result.routes[0].overview_path;
+        var mid = path[Math.floor(path.length / 2)];
+        new google.maps.InfoWindow({
+          content: '<div style="font-size:13px;font-weight:600;white-space:nowrap;">🚗 ' + dist + ' · ' + dur + '</div>',
+          position: mid, disableAutoPan: true
+        }).open(map);
+        // Update sidebar route card with distance/time
+        if (routeItems[i]) {
+          var existing = routeItems[i].textContent.trim();
+          routeItems[i].innerHTML = existing + '<br><span style="color:#1565c0;font-weight:600;">🚗 ' + dist + ' · ' + dur + '</span>';
+        }
+      }
+      drawRoute(i + 1);
     });
   }
+  drawRoute(0);
   // Fit bounds with padding
   var isMobile = window.innerWidth <= 768;
   if (spots.length > 1) {

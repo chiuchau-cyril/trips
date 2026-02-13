@@ -1138,13 +1138,37 @@ function initGoogleMap() {
     bounds.extend(pos);
   });
 
-  // Draw route lines: Airport → Hotel, Hotel → each attraction
+  // Draw driving routes: Airport → Hotel, Hotel → each attraction (with distance/time)
+  var ds = new google.maps.DirectionsService();
   var hotel = {lat: spots[1].lat, lng: spots[1].lng};
-  var airport = {lat: spots[0].lat, lng: spots[0].lng};
-  new google.maps.Polyline({path: [airport, hotel], strokeColor:'#1565c0', strokeWeight:4, strokeOpacity:0.7, map: map});
+  var routeItems = document.querySelectorAll('.map-route-item .map-route-detail');
+  var routePairs = [{o:{lat:spots[0].lat,lng:spots[0].lng}, d:hotel, color:'#1565c0', idx:0}];
   for (var i = 2; i < spots.length; i++) {
-    new google.maps.Polyline({path: [hotel, {lat:spots[i].lat, lng:spots[i].lng}], strokeColor: spots[i].color, strokeWeight:3, strokeOpacity:0.5, map: map});
+    routePairs.push({o:hotel, d:{lat:spots[i].lat,lng:spots[i].lng}, color:spots[i].color, idx:i});
   }
+  function drawManilaRoute(ri) {
+    if (ri >= routePairs.length) return;
+    var r = routePairs[ri];
+    ds.route({origin:r.o, destination:r.d, travelMode:'DRIVING'}, function(result, status) {
+      if (status === 'OK') {
+        new google.maps.DirectionsRenderer({map:map, directions:result, suppressMarkers:true,
+          polylineOptions:{strokeColor:r.color, strokeWeight:4, strokeOpacity:0.7}});
+        var leg = result.routes[0].legs[0];
+        var path = result.routes[0].overview_path;
+        var mid = path[Math.floor(path.length / 2)];
+        new google.maps.InfoWindow({
+          content:'<div style="font-size:13px;font-weight:600;white-space:nowrap;">🚗 '+leg.distance.text+' · '+leg.duration.text+'</div>',
+          position:mid, disableAutoPan:true
+        }).open(map);
+        if (routeItems[r.idx]) {
+          var existing = routeItems[r.idx].textContent.trim();
+          routeItems[r.idx].innerHTML = existing + '<br><span style="color:#1565c0;font-weight:600;">🚗 '+leg.distance.text+' · '+leg.duration.text+'</span>';
+        }
+      }
+      drawManilaRoute(ri + 1);
+    });
+  }
+  drawManilaRoute(0);
 
   var isMobile = window.innerWidth <= 768;
   map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
@@ -1526,89 +1550,7 @@ at the Fort" class="fade-in">
   <span style="cursor:pointer;text-decoration:underline;" onclick="enterFullscreen()">📺 全螢幕簡報模式</span>
 </footer>
 
-<script>
-function initMap() {
-  var mapEl = document.getElementById('gmap');
-  if (!mapEl) return;
-  var map = new google.maps.Map(mapEl, {
-    center: {lat: 21.12, lng: 105.92},
-    zoom: 11,
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: true,
-    zoomControl: true,
-    styles: [
-      {elementType:'geometry', stylers:[{color:'#1d2c4d'}]},
-      {elementType:'labels.text.fill', stylers:[{color:'#8ec3b9'}]},
-      {elementType:'labels.text.stroke', stylers:[{color:'#1a3646'}]},
-      {featureType:'water', elementType:'geometry', stylers:[{color:'#17263c'}]},
-      {featureType:'road', elementType:'labels', stylers:[{visibility:'off'}]},
-      {featureType:'road.highway', elementType:'geometry', stylers:[{color:'#2c6675'}]},
-      {featureType:'road.highway', elementType:'geometry.stroke', stylers:[{color:'#255d6a'}]},
-      {featureType:'road.arterial', elementType:'geometry', stylers:[{color:'#263c5a'}]},
-      {featureType:'road.local', elementType:'geometry', stylers:[{color:'#1e2d45'}]},
-      {featureType:'poi', elementType:'geometry', stylers:[{color:'#1a3346'}]},
-      {featureType:'poi', elementType:'labels.text.fill', stylers:[{color:'#6a9e90'}]},
-      {featureType:'poi', elementType:'labels.text.stroke', stylers:[{color:'#1a3646'}]},
-      {featureType:'poi.park', elementType:'geometry', stylers:[{color:'#1a4435'}]},
-      {featureType:'transit', elementType:'geometry', stylers:[{color:'#2f3948'}]},
-      {featureType:'transit.station', elementType:'labels.text.fill', stylers:[{color:'#8ec3b9'}]},
-      {featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{color:'#7eb8a8'}]},
-      {featureType:'administrative.neighborhood', stylers:[{visibility:'off'}]},
-      {featureType:'landscape.man_made', elementType:'geometry', stylers:[{color:'#1a2744'}]},
-      {featureType:'landscape.natural', elementType:'geometry', stylers:[{color:'#1a3346'}]}
-    ]
-  });
-  var spots = [
-    {id:'A', name:'內排國際機場', sub:'Noi Bai International Airport', detail:'3/5 10:20 抵達 ✈️', lat:21.2187, lng:105.8042, color:'#4285F4', icon:'✈️'},
-    {id:'B', name:'Senna Wellness Retreat', sub:'北寧', detail:'Day 1-2 ｜ 辦事 + 度假村 🌿', lat:21.1861, lng:106.0763, color:'#0F9D58', icon:'🌿'},
-    {id:'C', name:'還劍湖・河內老城區', sub:'Hoàn Kiếm Lake', detail:'Day 3-6 ｜ 觀光美食 🏮', lat:21.0285, lng:105.8542, color:'#F4B400', icon:'🏮'}
-  ];
-  spots.forEach(function(s) {
-    var marker = new google.maps.Marker({
-      position: {lat: s.lat, lng: s.lng}, map: map,
-      label: {text: s.id, color: '#fff', fontWeight: '700', fontSize: '14px'},
-      icon: {path: google.maps.SymbolPath.CIRCLE, fillColor: s.color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3, scale: 16}
-    });
-    var infoContent = '<div style="font-family:\'Noto Sans TC\',sans-serif;padding:4px;min-width:180px;"><div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + s.icon + ' ' + s.name + '</div><div style="font-size:13px;color:#666;margin-bottom:2px;">' + s.sub + '</div><div style="font-size:13px;color:#333;">' + s.detail + '</div></div>';
-    var info = new google.maps.InfoWindow({content: infoContent});
-    marker.addListener('click', function() { info.open(map, marker); });
-  });
-  var ds = new google.maps.DirectionsService();
-  var colors = ['#4285F4', '#0F9D58'];
-  var routes = [
-    {origin:{lat:21.2187,lng:105.8042}, destination:{lat:21.1861,lng:106.0763}, distEl:'distAB'},
-    {origin:{lat:21.1861,lng:106.0763}, destination:{lat:21.0285,lng:105.8542}, distEl:'distBC'}
-  ];
-  routes.forEach(function(r, i) {
-    ds.route({origin: r.origin, destination: r.destination, travelMode: 'DRIVING'}, function(result, status) {
-      if (status === 'OK') {
-        new google.maps.DirectionsRenderer({map: map, directions: result, suppressMarkers: true, polylineOptions: {strokeColor: colors[i], strokeWeight: 6, strokeOpacity: 0.85}});
-        var leg = result.routes[0].legs[0];
-        var el = document.getElementById(r.distEl);
-        if (el) el.textContent = '🚗 ' + leg.distance.text + '・' + leg.duration.text;
-      }
-    });
-  });
-  var bounds = new google.maps.LatLngBounds();
-  spots.forEach(function(s) { bounds.extend({lat:s.lat, lng:s.lng}); });
-  // Mobile: card is at bottom, needs more bottom padding; Desktop: card is at right
-  var isMobile = window.innerWidth <= 768;
-  var padding = isMobile
-    ? {top: 60, bottom: 320, left: 30, right: 30}
-    : {top: 60, bottom: 60, left: 60, right: 340};
-  map.fitBounds(bounds, padding);
-  var toggle = document.getElementById('mapCardToggle');
-  var body = document.getElementById('mapCardBody');
-  if (toggle && body) {
-    toggle.addEventListener('click', function() {
-      var collapsed = body.style.display === 'none';
-      body.style.display = collapsed ? '' : 'none';
-      toggle.textContent = collapsed ? '▾' : '▴';
-    });
-  }
-}
-</script>
+<!-- old duplicate initMap removed -->
 <script>
   // ============ Fullscreen presentation ============
   function enterFullscreen() {

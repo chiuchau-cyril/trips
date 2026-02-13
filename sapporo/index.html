@@ -1690,11 +1690,37 @@
       bounds.extend(pos);
     });
 
-    // Draw lines between spots
-    var lineCoords = spots.map(function(s) { return {lat: s.lat, lng: s.lng}; });
-    new google.maps.Polyline({path: [lineCoords[0], lineCoords[1]], strokeColor:'#4285F4', strokeWeight:4, strokeOpacity:0.7, map: map});
-    new google.maps.Polyline({path: [lineCoords[1], lineCoords[2]], strokeColor:'#0F9D58', strokeWeight:4, strokeOpacity:0.7, map: map});
-    new google.maps.Polyline({path: [lineCoords[1], lineCoords[3]], strokeColor:'#E85D26', strokeWeight:4, strokeOpacity:0.7, map: map});
+    // Draw driving routes with distance/time labels
+    var ds = new google.maps.DirectionsService();
+    var routeItems = document.querySelectorAll('.map-route-item .map-route-detail');
+    var routePairs = [
+      {o:{lat:spots[0].lat,lng:spots[0].lng}, d:{lat:spots[1].lat,lng:spots[1].lng}, color:'#4285F4', idx:0},
+      {o:{lat:spots[1].lat,lng:spots[1].lng}, d:{lat:spots[2].lat,lng:spots[2].lng}, color:'#0F9D58', idx:1},
+      {o:{lat:spots[1].lat,lng:spots[1].lng}, d:{lat:spots[3].lat,lng:spots[3].lng}, color:'#E85D26', idx:2}
+    ];
+    function drawSapporoRoute(ri) {
+      if (ri >= routePairs.length) return;
+      var r = routePairs[ri];
+      ds.route({origin:r.o, destination:r.d, travelMode:'DRIVING'}, function(result, status) {
+        if (status === 'OK') {
+          new google.maps.DirectionsRenderer({map:map, directions:result, suppressMarkers:true,
+            polylineOptions:{strokeColor:r.color, strokeWeight:5, strokeOpacity:0.8}});
+          var leg = result.routes[0].legs[0];
+          var path = result.routes[0].overview_path;
+          var mid = path[Math.floor(path.length / 2)];
+          new google.maps.InfoWindow({
+            content:'<div style="font-size:13px;font-weight:600;white-space:nowrap;">🚗 '+leg.distance.text+' · '+leg.duration.text+'</div>',
+            position:mid, disableAutoPan:true
+          }).open(map);
+          if (routeItems[r.idx]) {
+            var existing = routeItems[r.idx].textContent.trim();
+            routeItems[r.idx].innerHTML = existing + '<br><span style="color:#1565c0;font-weight:600;">🚗 '+leg.distance.text+' · '+leg.duration.text+'</span>';
+          }
+        }
+        drawSapporoRoute(ri + 1);
+      });
+    }
+    drawSapporoRoute(0);
 
     var isMobile = window.innerWidth <= 768;
     map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
