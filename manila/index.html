@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYLXzDhiiOXuTHCja-wdmcPb_Q1XXrBzY&callback=Function.prototype" async defer></script>
   <style>
     :root {
       --primary: #1a7a5a;
@@ -1101,19 +1101,9 @@ at the Fort"></button>
   </div>
 </section>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initGoogleMap() {
   var mapEl = document.getElementById('gmap');
   if (!mapEl) return;
-
-  var map = L.map('gmap', {
-    zoomControl: true,
-    scrollWheelZoom: false,
-    dragging: !L.Browser.mobile
-  });
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
-  }).addTo(map);
 
   var spots = [
     {name:'NAIA 機場', lat:14.5086, lng:121.0197, color:'#e85d26', emoji:'✈️', detail:'Day 1 抵達'},
@@ -1125,37 +1115,45 @@ document.addEventListener('DOMContentLoaded', function() {
     {name:'Rizal Park', lat:14.5764, lng:120.9838, color:'#1a7a5a', emoji:'🌳', detail:'Day 2 公園'}
   ];
 
-  var bounds = L.latLngBounds();
+  var map = new google.maps.Map(mapEl, {
+    center: {lat: 14.55, lng: 121.0},
+    zoom: 12,
+    gestureHandling: 'cooperative',
+    zoomControl: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    styles: [
+      {featureType:'poi',stylers:[{visibility:'simplified'}]},
+      {featureType:'transit',stylers:[{visibility:'off'}]}
+    ]
+  });
+
+  var bounds = new google.maps.LatLngBounds();
   spots.forEach(function(s) {
-    var icon = L.divIcon({
-      html: '<div style="font-size:1.5rem;text-shadow:0 1px 3px rgba(0,0,0,0.3);">'+s.emoji+'</div>',
-      className: '', iconSize: [28, 28], iconAnchor: [14, 14]
-    });
-    L.marker([s.lat, s.lng], {icon: icon}).addTo(map).bindPopup('<b>'+s.name+'</b><br>'+s.detail);
-    bounds.extend([s.lat, s.lng]);
+    var pos = {lat: s.lat, lng: s.lng};
+    var marker = new google.maps.Marker({position: pos, map: map, label: {text: s.emoji, fontSize: '1.5rem'}, title: s.name});
+    var infowindow = new google.maps.InfoWindow({content: '<b>'+s.name+'</b><br>'+s.detail});
+    marker.addListener('click', function() { infowindow.open(map, marker); });
+    bounds.extend(pos);
   });
 
   // Draw route lines: Airport → Hotel, Hotel → each attraction
-  var hotel = [spots[1].lat, spots[1].lng];
-  var airport = [spots[0].lat, spots[0].lng];
-  // Airport → Hotel
-  L.polyline([airport, hotel], {color:'#1565c0', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
-  // Hotel → each attraction
+  var hotel = {lat: spots[1].lat, lng: spots[1].lng};
+  var airport = {lat: spots[0].lat, lng: spots[0].lng};
+  new google.maps.Polyline({path: [airport, hotel], strokeColor:'#1565c0', strokeWeight:4, strokeOpacity:0.7, map: map});
   for (var i = 2; i < spots.length; i++) {
-    L.polyline([hotel, [spots[i].lat, spots[i].lng]], {color: spots[i].color, weight:3, opacity:0.5, dashArray:'6,6'}).addTo(map);
+    new google.maps.Polyline({path: [hotel, {lat:spots[i].lat, lng:spots[i].lng}], strokeColor: spots[i].color, strokeWeight:3, strokeOpacity:0.5, map: map});
   }
 
   var isMobile = window.innerWidth <= 768;
-  map.fitBounds(bounds, {
-    padding: isMobile ? [30, 30] : [60, 340]
-  });
+  map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
 
-  // Fix Leaflet grey tiles
-  setTimeout(function() { map.invalidateSize(); }, 300);
   var mapObs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
-        setTimeout(function() { map.invalidateSize(); map.fitBounds(bounds, { padding: isMobile ? [30,30] : [60,340] }); }, 100);
+        google.maps.event.trigger(map, 'resize');
+        map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
       }
     });
   }, { threshold: 0.1 });
@@ -1172,7 +1170,12 @@ document.addEventListener('DOMContentLoaded', function() {
       toggle.textContent = c ? '▾' : '▴';
     });
   }
-});
+}
+function waitForGoogleMaps() {
+  if (typeof google !== 'undefined' && google.maps) { initGoogleMap(); }
+  else { setTimeout(waitForGoogleMaps, 200); }
+}
+document.addEventListener('DOMContentLoaded', waitForGoogleMaps);
 </script>
 
 <section class="slide slide-split" id="slide-3" style="background:#fafaf7;">

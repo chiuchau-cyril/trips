@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Google Maps -->
+  
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYLXzDhiiOXuTHCja-wdmcPb_Q1XXrBzY&callback=Function.prototype" async defer></script>
   <style>
     :root {
       --primary: #1a5f8a;
@@ -958,11 +958,11 @@
   </div>
 </section>
 
-<!-- ===================== SLIDE 3: MAP (Leaflet) ===================== -->
+<!-- ===================== SLIDE 3: MAP (Google Maps) ===================== -->
 <section class="slide map-slide" id="slide-3" style="background:#e8f0f5;">
   <div class="slide-content">
     <div class="map-container">
-      <div id="leafletMap" style="width:100%;height:100%;"></div>
+      <div id="googleMap" style="width:100%;height:100%;"></div>
     </div>
     <div class="map-float-card" id="mapCard">
       <div class="map-card-header">
@@ -1644,23 +1644,10 @@
 </footer>
 
 <script>
-  // ============ Leaflet Map ============
-  document.addEventListener('DOMContentLoaded', function() {
-    var mapEl = document.getElementById('leafletMap');
+  // ============ Google Maps ============
+  function initGoogleMap() {
+    var mapEl = document.getElementById('googleMap');
     if (!mapEl) return;
-
-    var map = L.map('leafletMap', {
-      center: [43.15, 141.2],
-      zoom: 10,
-      zoomControl: true,
-      scrollWheelZoom: false,
-      dragging: !L.Browser.mobile
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18
-    }).addTo(map);
 
     var spots = [
       {id:'A', name:'新千歲機場 (CTS)', lat:42.7752, lng:141.6925, color:'#4285F4'},
@@ -1669,48 +1656,54 @@
       {id:'D', name:'小樽', lat:43.1907, lng:140.9946, color:'#E85D26'}
     ];
 
-    var bounds = L.latLngBounds();
+    var map = new google.maps.Map(mapEl, {
+      center: {lat: 43.15, lng: 141.2},
+      zoom: 10,
+      gestureHandling: 'cooperative',
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      styles: [
+        {featureType:'poi',stylers:[{visibility:'simplified'}]},
+        {featureType:'transit',stylers:[{visibility:'off'}]}
+      ]
+    });
+
+    var bounds = new google.maps.LatLngBounds();
     spots.forEach(function(s) {
-      var marker = L.circleMarker([s.lat, s.lng], {
-        radius: 12,
-        fillColor: s.color,
-        fillOpacity: 1,
-        color: '#fff',
-        weight: 3
-      }).addTo(map);
-
-      marker.bindTooltip('<b>' + s.id + '</b>', {
-        permanent: true,
-        direction: 'center',
-        className: 'marker-label'
+      var pos = {lat: s.lat, lng: s.lng};
+      var marker = new google.maps.Marker({
+        position: pos, map: map,
+        label: {text: s.id, color: '#fff', fontWeight: '700', fontSize: '13px'},
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: s.color, fillOpacity: 1,
+          strokeColor: '#fff', strokeWeight: 3, scale: 12
+        },
+        title: s.name
       });
-
-      marker.bindPopup(
-        '<div style="font-family:Noto Sans TC,sans-serif;min-width:160px;">' +
-        '<div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + s.id + '. ' + s.name + '</div>' +
-        '</div>'
-      );
-
-      bounds.extend([s.lat, s.lng]);
+      var infowindow = new google.maps.InfoWindow({
+        content: '<div style="font-family:Noto Sans TC,sans-serif;min-width:160px;"><div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + s.id + '. ' + s.name + '</div></div>'
+      });
+      marker.addListener('click', function() { infowindow.open(map, marker); });
+      bounds.extend(pos);
     });
 
     // Draw lines between spots
-    var lineCoords = spots.map(function(s) { return [s.lat, s.lng]; });
-    L.polyline([lineCoords[0], lineCoords[1]], {color:'#4285F4', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
-    L.polyline([lineCoords[1], lineCoords[2]], {color:'#0F9D58', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
-    L.polyline([lineCoords[1], lineCoords[3]], {color:'#E85D26', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
+    var lineCoords = spots.map(function(s) { return {lat: s.lat, lng: s.lng}; });
+    new google.maps.Polyline({path: [lineCoords[0], lineCoords[1]], strokeColor:'#4285F4', strokeWeight:4, strokeOpacity:0.7, map: map});
+    new google.maps.Polyline({path: [lineCoords[1], lineCoords[2]], strokeColor:'#0F9D58', strokeWeight:4, strokeOpacity:0.7, map: map});
+    new google.maps.Polyline({path: [lineCoords[1], lineCoords[3]], strokeColor:'#E85D26', strokeWeight:4, strokeOpacity:0.7, map: map});
 
     var isMobile = window.innerWidth <= 768;
-    map.fitBounds(bounds, {
-      padding: isMobile ? [30, 30] : [60, 340]
-    });
+    map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
 
-    // Fix Leaflet grey tiles: invalidateSize when map slide becomes visible
-    setTimeout(function() { map.invalidateSize(); }, 300);
     var mapObs = new IntersectionObserver(function(entries) {
       entries.forEach(function(e) {
         if (e.isIntersecting) {
-          setTimeout(function() { map.invalidateSize(); map.fitBounds(bounds, { padding: isMobile ? [30,30] : [60,340] }); }, 100);
+          google.maps.event.trigger(map, 'resize');
+          map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
         }
       });
     }, { threshold: 0.1 });
@@ -1727,12 +1720,12 @@
         toggle.textContent = collapsed ? '▾' : '▴';
       });
     }
-  });
-
-  // ============ Leaflet marker label style ============
-  var style = document.createElement('style');
-  style.textContent = '.marker-label { background:transparent !important; border:none !important; box-shadow:none !important; color:#fff; font-size:13px; font-weight:700; }';
-  document.head.appendChild(style);
+  }
+  function waitForGoogleMaps() {
+    if (typeof google !== 'undefined' && google.maps) { initGoogleMap(); }
+    else { setTimeout(waitForGoogleMaps, 200); }
+  }
+  document.addEventListener('DOMContentLoaded', waitForGoogleMaps);
 
   // ============ Fullscreen presentation ============
   function enterFullscreen() {
