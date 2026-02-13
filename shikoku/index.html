@@ -7,8 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYLXzDhiiOXuTHCja-wdmcPb_Q1XXrBzY&callback=Function.prototype" async defer></script>
   <style>
     :root {
       --primary: #1a7a5a;
@@ -1032,7 +1031,7 @@
 <section class="slide map-slide" id="slide-2" style="background:#f5f5f2;">
   <div class="slide-content">
     <div class="map-container" style="height:100vh;z-index:1000;">
-      <div id="leafletMap" style="width:100%;height:100%;"></div>
+      <div id="googleMap" style="width:100%;height:100%;"></div>
     </div>
     <div class="map-float-card" id="mapCard" style="z-index:1001;">
       <div class="map-card-header">
@@ -1101,49 +1100,69 @@
   </div>
 </section>
 <script>
-function initLeafletMap() {
-  var mapEl = document.getElementById('leafletMap');
+function initGoogleMap() {
+  var mapEl = document.getElementById('googleMap');
   if (!mapEl) return;
   var spots = [{"name":"高松機場","lat":34.2142,"lng":134.0156,"color":"#4285F4","emoji":"✈️","detail":"抵達 & 出發"},{"name":"栗林公園","lat":34.3297,"lng":134.0463,"color":"#0F9D58","emoji":"🌿","detail":"米其林三星庭園"},{"name":"金刀比羅宮","lat":34.1847,"lng":133.8184,"color":"#F4B400","emoji":"⛩️","detail":"1,368階石段挑戰"},{"name":"松山城","lat":33.8495,"lng":132.7654,"color":"#E85D26","emoji":"🏯","detail":"日本現存12天守"},{"name":"道後溫泉","lat":33.8526,"lng":132.7877,"color":"#FF5722","emoji":"♨️","detail":"3000年歷史・神隱少女湯屋"},{"name":"島波海道（今治）","lat":34.0662,"lng":132.9977,"color":"#9C27B0","emoji":"🚲","detail":"世界最美自行車道"},{"name":"高松港","lat":34.3504,"lng":134.0487,"color":"#4285F4","emoji":"🌅","detail":"瀨戶內海夕陽"}];
-  var map = L.map('leafletMap', {
+  var center = {lat: 33.8, lng: 133.2};
+  var map = new google.maps.Map(mapEl, {
+    center: center,
+    zoom: 9,
+    mapTypeId: 'roadmap',
+    gestureHandling: 'cooperative',
     zoomControl: true,
-    scrollWheelZoom: false,
-    dragging: true,
-    touchZoom: true
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    styles: [
+      {featureType:'poi',stylers:[{visibility:'simplified'}]},
+      {featureType:'transit',stylers:[{visibility:'off'}]}
+    ]
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 18
-  }).addTo(map);
-  var bounds = L.latLngBounds();
+  var bounds = new google.maps.LatLngBounds();
   var lineCoords = [];
-  spots.forEach(function(s, i) {
-    var icon = L.divIcon({html: '<div style="font-size:1.5rem;text-shadow:0 1px 3px rgba(0,0,0,0.3);">'+s.emoji+'</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14]});
-    L.marker([s.lat, s.lng], {icon: icon}).addTo(map).bindPopup('<b>'+s.name+'</b><br>'+s.detail);
-    bounds.extend([s.lat, s.lng]);
-    lineCoords.push([s.lat, s.lng]);
+  spots.forEach(function(s) {
+    var pos = {lat: s.lat, lng: s.lng};
+    var marker = new google.maps.marker.AdvancedMarkerElement ? null : new google.maps.Marker({
+      position: pos,
+      map: map,
+      label: {text: s.emoji, fontSize: '1.5rem'},
+      title: s.name
+    });
+    if (!marker) {
+      var pin = document.createElement('div');
+      pin.style.fontSize = '1.5rem';
+      pin.style.textShadow = '0 1px 3px rgba(0,0,0,0.3)';
+      pin.textContent = s.emoji;
+      marker = new google.maps.Marker({position: pos, map: map, title: s.name});
+    }
+    var infowindow = new google.maps.InfoWindow({content: '<b>'+s.name+'</b><br>'+s.detail});
+    marker.addListener('click', function() { infowindow.open(map, marker); });
+    bounds.extend(pos);
+    lineCoords.push(pos);
   });
   // Draw polyline routes between consecutive stops
   var routeColors = ['#4285F4', '#0F9D58', '#E85D26', '#F4B400', '#9C27B0', '#FF5722'];
   for (var i = 0; i < lineCoords.length - 1; i++) {
-    L.polyline([lineCoords[i], lineCoords[i+1]], {
-      color: routeColors[i % routeColors.length],
-      weight: 4, opacity: 0.7, dashArray: '8,8'
-    }).addTo(map);
+    new google.maps.Polyline({
+      path: [lineCoords[i], lineCoords[i+1]],
+      strokeColor: routeColors[i % routeColors.length],
+      strokeOpacity: 0.7,
+      strokeWeight: 4,
+      map: map
+    });
   }
+  // Fit bounds with padding
   var isMobile = window.innerWidth <= 768;
-  map.fitBounds(bounds, {
-    padding: isMobile ? [30, 30] : [60, 340],
-    maxZoom: 14
-  });
-  // Fix Leaflet grey tiles: invalidateSize when map slide becomes visible
-  setTimeout(function() { map.invalidateSize(); }, 300);
+  if (spots.length > 1) {
+    map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
+  }
+  // Resize when slide becomes visible
   var mapObs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
-        setTimeout(function() {
-          map.invalidateSize();
-          map.fitBounds(bounds, { padding: isMobile ? [30, 30] : [60, 340] });
-        }, 100);
+        google.maps.event.trigger(map, 'resize');
+        if (spots.length > 1) map.fitBounds(bounds, isMobile ? {top:30,right:30,bottom:30,left:30} : {top:60,right:60,bottom:60,left:340});
       }
     });
   }, { threshold: 0.3 });
@@ -1159,7 +1178,11 @@ function initLeafletMap() {
     });
   }
 }
-document.addEventListener('DOMContentLoaded', initLeafletMap);
+function waitForGoogleMaps() {
+  if (typeof google !== 'undefined' && google.maps) { initGoogleMap(); }
+  else { setTimeout(waitForGoogleMaps, 200); }
+}
+document.addEventListener('DOMContentLoaded', waitForGoogleMaps);
 </script>
 
 <section class="slide slide-split" id="slide-3" style="background:#fafaf7;">
