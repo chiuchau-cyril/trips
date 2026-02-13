@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🇯🇵 札幌滑雪家族旅行</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --primary: #1a5f8a;
+      --primary-dark: #134668;
+      --accent: #e85d26;
+      --accent-light: #d94f1a;
+      --gold: #78b4d0;
+      --bg: #f0f5f8;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --text-light: #666;
+      --border: #d4e2ec;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+
+    @media (max-width: 768px) {
+      html { scroll-snap-type: none !important; }
+      .slide { scroll-snap-align: none !important; }
+    }
+    @media (max-height: 500px) and (orientation: landscape) {
+      html { scroll-snap-type: none !important; }
+      .slide { scroll-snap-align: none !important; }
+    }
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: #1a1a1a;
+      font-size: 18px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ============ SLIDE SYSTEM ============ */
+    .slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+    .slide-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
+    .slide-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1200px;
+      padding: 2rem;
+    }
+
+    .overlay-dark .slide-bg::after { background: rgba(0,0,0,0.65); }
+    .overlay-gradient .slide-bg::after { background: linear-gradient(135deg, rgba(0,20,50,0.75) 0%, rgba(0,40,80,0.35) 100%); }
+    .overlay-left .slide-bg::after { background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); }
+    .overlay-bottom .slide-bg::after { background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); }
+    .overlay-soft .slide-bg::after { background: rgba(0,20,60,0.4); }
+    .overlay-dark, .overlay-gradient, .overlay-left, .overlay-bottom, .overlay-soft { color: #fff; }
+
+    /* ============ HERO SLIDE ============ */
+    .hero-content {
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero-flag { font-size: 3rem; margin-bottom: 0.5rem; }
+    .hero-title {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
+      font-weight: 300;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+    }
+    .hero-dates {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 0.6rem 2rem;
+      border-radius: 50px;
+      font-weight: 500;
+      font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+      letter-spacing: 1px;
+    }
+    .hero-badge {
+      display: inline-block;
+      margin-top: 1.2rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 0.4rem 1.2rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      text-align: center;
+      opacity: 0.7;
+      animation: bounce 2s infinite;
+    }
+    .scroll-hint span { font-size: 0.75rem; display: block; margin-bottom: 0.25rem; }
+    @keyframes bounce {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    /* ============ SECTION HEADERS ============ */
+    .section-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.5;
+      margin-bottom: 0.3rem;
+    }
+    .section-heading {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+      font-weight: 300;
+      opacity: 0.7;
+      max-width: 600px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ============ INFO PILLS ============ */
+    .info-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .pill {
+      background: rgba(0,0,0,0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+    }
+    .overlay-dark .pill, .overlay-gradient .pill, .overlay-bottom .pill {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .pill .label { opacity: 0.6; font-size: 0.7rem; display: block; }
+    .pill .value { font-weight: 700; }
+
+    /* ============ MEMBERS ============ */
+    .members-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .member-card {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      text-align: center;
+      min-width: 110px;
+      transition: transform 0.3s;
+    }
+    .member-card:hover { transform: translateY(-4px); }
+    .member-card .avatar { font-size: 2.5rem; }
+    .member-card .name { font-weight: 700; font-size: 1rem; margin-top: 0.3rem; }
+    .member-card .age { font-size: 0.8rem; opacity: 0.6; }
+
+    /* ============ FLIGHT ============ */
+    .flight-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .flight-city { text-align: center; }
+    .flight-city .code {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: 3px;
+    }
+    .flight-city .detail { font-size: 0.85rem; opacity: 0.7; }
+    .flight-middle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+    }
+    .flight-middle .line {
+      width: 100px;
+      height: 2px;
+      background: rgba(255,255,255,0.3);
+      position: relative;
+      margin: 0.3rem 0;
+    }
+    .flight-middle .line::after {
+      content: '✈';
+      position: absolute;
+      right: -8px;
+      top: -10px;
+      font-size: 1.2rem;
+    }
+    .flight-middle .num {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* ============ MAP ============ */
+    .map-slide {
+      position: relative;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .map-slide .slide-content {
+      position: absolute;
+      inset: 0;
+      max-width: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .map-slide .map-header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      padding: 1.5rem 2rem 1rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+      text-align: center;
+      color: #fff;
+    }
+    .map-slide .map-header h2 { margin: 0; }
+    .map-slide .map-header p { margin: .25rem 0 0; }
+    .map-container {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      height: 100vh;
+    }
+    .map-float-card {
+      position: absolute;
+      top: 1.5rem; right: 1.5rem;
+      z-index: 1000;
+      width: 320px;
+      background: rgba(30, 30, 30, 0.85);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      color: #fff;
+      overflow: hidden;
+      font-size: 15px;
+    }
+    .map-card-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: 1rem 1.25rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .map-card-header h3 { flex: 1; }
+    .map-card-toggle {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .map-card-toggle:hover { background: rgba(255,255,255,0.2); }
+    .map-card-body { padding: .75rem 1.25rem 1rem; }
+    .map-route-item {
+      display: flex;
+      gap: .75rem;
+      position: relative;
+      padding-bottom: .75rem;
+    }
+    .map-route-item:last-child { padding-bottom: 0; }
+    .map-route-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2.5px solid #fff;
+      flex-shrink: 0;
+      margin-top: 3px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    }
+    .map-route-line {
+      position: absolute;
+      left: 5.5px;
+      top: 20px;
+      bottom: 0;
+      width: 3px;
+      border-radius: 2px;
+      opacity: 0.5;
+    }
+    .map-route-info { flex: 1; }
+    .map-route-label { font-weight: 600; font-size: 15px; }
+    .map-route-detail { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .map-route-dist { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    @media (max-width: 768px) {
+      .map-float-card {
+        top: auto;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+      }
+    }
+
+    /* ============ TIMELINE / DAY GRID ============ */
+    .day-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .day-info { padding-right: 1rem; }
+    .day-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.7rem;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-right: 0.3rem;
+      color: #fff;
+    }
+    .badge-ski { background: var(--primary); }
+    .badge-play { background: #0F9D58; }
+    .badge-shop { background: #c2185b; }
+    .badge-home { background: #5e35b1; }
+    .badge-travel { background: #1565c0; }
+    .badge-food { background: #e85d26; }
+    .badge-culture { background: #6a1b9a; }
+    .day-title {
+      font-size: clamp(1.4rem, 2.8vw, 2rem);
+      font-weight: 900;
+      margin: 0.3rem 0;
+      line-height: 1.2;
+    }
+    .day-location {
+      font-size: 0.85rem;
+      opacity: 0.6;
+      margin-bottom: 0.6rem;
+    }
+    .day-items { list-style: none; }
+    .day-items li {
+      padding: 0.2rem 0;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+      line-height: 1.5;
+    }
+    .day-items li::before {
+      content: '›';
+      color: var(--accent);
+      font-weight: 900;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+    .day-img {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    .day-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      min-height: 250px;
+      max-height: 400px;
+    }
+    .highlight {
+      background: rgba(232,93,38,0.12);
+      padding: 0 4px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    a.ext-link {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(232,93,38,0.3);
+      transition: border-color 0.2s;
+    }
+    a.ext-link:hover { border-color: var(--accent); }
+    .overlay-dark a.ext-link, .overlay-gradient a.ext-link, .overlay-bottom a.ext-link {
+      color: #ff8f62;
+      border-bottom-color: rgba(255,143,98,0.3);
+    }
+
+    /* ============ SPLIT LAYOUT ============ */
+    .accom-layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .accom-left {
+      width: 50%;
+      min-width: 50%;
+      display: flex;
+      flex-direction: row;
+      gap: 0;
+      overflow: hidden;
+      background: #fff;
+    }
+    .accom-left > div:first-child {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 2.5rem 1.5rem 2.5rem 3rem;
+    }
+    .accom-thumbs {
+      flex: 0 0 270px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-content: start;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2.5rem 14px 2.5rem 14px;
+      border-left: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+    .accom-thumbs::-webkit-scrollbar { width: 3px; }
+    .accom-thumbs::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+    .accom-thumb {
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      min-width: 240px;
+      min-height: 240px;
+      aspect-ratio: 1 / 1;
+      border: 2px solid rgba(0,0,0,0.08);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .accom-thumb:hover { transform: scale(1.05); border-color: rgba(0,0,0,0.25); }
+    .accom-thumb.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(232,93,38,0.3); }
+    .accom-thumbs { scroll-behavior: smooth; }
+    .accom-thumbs--bottom { scroll-snap-type: x proximity; }
+    .accom-thumbs--bottom .accom-thumb { scroll-snap-align: center; }
+    .accom-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .accom-big-img {
+      width: 50%;
+      min-width: 50%;
+      height: 100vh;
+      overflow: hidden;
+      border-radius: 0;
+      position: relative;
+    }
+    .accom-big-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: opacity 1s ease-in-out;
+    }
+    .accom-big-img img.fade-out { opacity: 0; }
+    .accom-big-img img.fade-in { opacity: 1; }
+
+    .accom-left--itinerary { flex-direction: column !important; }
+    .accom-left--itinerary > div:first-child { flex: 1 1 auto; overflow-y: auto; }
+    .accom-thumbs--bottom {
+      flex: 0 0 264px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 10px !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      padding: 12px 1.5rem 12px 3rem !important;
+      border-left: none !important;
+      border-top: 1px solid var(--border) !important;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+    .accom-thumbs--bottom::-webkit-scrollbar { height: 3px; width: auto; }
+    .accom-thumbs--bottom::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+    .accom-thumbs--bottom .accom-thumb {
+      flex: 0 0 240px;
+      width: 240px;
+      height: 240px;
+      min-width: 240px;
+      min-height: 240px;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+    }
+    @media (max-width: 768px) {
+      .accom-thumbs--bottom {
+        padding: 8px 1rem !important;
+      }
+      .accom-thumbs--bottom .accom-thumb {
+        flex: 0 0 120px;
+        width: 120px;
+        height: 120px;
+        min-width: 120px;
+        min-height: 120px;
+      }
+    }
+
+    .slide-split .slide-content { max-width: none; padding: 0; }
+    @media (max-width: 768px) {
+      .accom-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: auto;
+      }
+      .accom-big-img {
+        order: 1;
+        width: 100%;
+        min-width: 100%;
+        height: 40vw;
+        min-height: 180px;
+        max-height: 260px;
+      }
+      .accom-left {
+        order: 2;
+        width: 100%;
+        min-width: 100%;
+        flex-direction: column-reverse;
+      }
+      .accom-left--itinerary { flex-direction: column-reverse !important; }
+      .accom-thumbs--bottom,
+      .accom-thumbs {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+        padding: 8px 0.75rem !important;
+        border-left: none !important;
+        border-top: none !important;
+        border-bottom: 1px solid var(--border) !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        max-height: none !important;
+      }
+      .accom-thumbs--bottom .accom-thumb,
+      .accom-thumbs .accom-thumb {
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        min-height: 56px !important;
+        border-radius: 6px !important;
+      }
+      .accom-left > div:first-child { padding: 1rem 1rem 1.2rem; }
+      .accom-left--itinerary > div:first-child {
+        padding: 1rem 1rem 1.2rem;
+        max-height: none;
+      }
+    }
+
+    /* ============ FOOD GRID ============ */
+    .food-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    .food-card {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+    .food-card:hover { transform: translateY(-4px); }
+    .food-card-img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+    }
+    .food-card-body { padding: 0.6rem 0.8rem; }
+    .food-name { font-weight: 700; }
+    .food-desc { opacity: 0.7; }
+
+    /* ============ BUDGET ============ */
+    .budget-table {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .budget-table th {
+      background: #e8f0f5;
+      padding: 0.8rem 1.2rem;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #555;
+    }
+    .budget-table th:last-child { text-align: right; }
+    .budget-table td {
+      padding: 0.65rem 1.2rem;
+      font-size: 0.92rem;
+      border-bottom: 1px solid #eef2f5;
+    }
+    .budget-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+    .budget-table tr:last-child td { border-bottom: none; }
+    .budget-total { background: rgba(26,95,138,0.08) !important; }
+    .budget-total td {
+      font-weight: 900 !important;
+      font-size: 1.05rem !important;
+      color: var(--accent);
+      border-bottom: none !important;
+    }
+    .budget-note {
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.5;
+      margin-top: 0.75rem;
+    }
+
+    /* ============ NOTES ============ */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.75rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .note-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .note-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .note-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.15rem; }
+    .note-text { font-size: 0.82rem; opacity: 0.7; line-height: 1.5; }
+
+    /* ============ GLOBAL MIN FONT SIZE 18px ============ */
+    body, p, li, td, th, span, div, a, label { font-size: max(var(--local-fs, 1rem), 18px); }
+    .section-num { --local-fs: 0.85rem; font-size: max(0.85rem, 18px); }
+    .pill .label { --local-fs: 0.85rem; font-size: max(0.85rem, 18px); }
+    .day-badge { --local-fs: 0.8rem; font-size: max(0.8rem, 18px); }
+    .day-location { font-size: max(0.95rem, 18px); }
+    .day-items li { font-size: max(1rem, 18px); }
+    .food-name { font-size: max(1rem, 18px); }
+    .food-desc { font-size: max(0.88rem, 18px); }
+    .note-text { font-size: max(0.92rem, 18px); }
+    .note-title { font-size: max(1rem, 18px); }
+    .budget-table td { font-size: max(1rem, 18px); }
+    .budget-table th { font-size: max(0.9rem, 18px); }
+    .budget-note { font-size: max(0.9rem, 18px); }
+    .member-card .age { font-size: max(0.9rem, 18px); }
+    .member-card .name { font-size: max(1rem, 18px); }
+    .flight-middle .num { font-size: max(0.85rem, 18px); }
+    .flight-city .detail { font-size: max(0.95rem, 18px); }
+    .scroll-hint span { font-size: max(0.85rem, 18px); }
+    .hero-badge { font-size: max(0.95rem, 18px); }
+    .pill .value { font-size: max(1rem, 18px); }
+    a.ext-link { font-size: max(0.92rem, 18px); }
+
+    /* ============ FOOTER ============ */
+    .footer {
+      text-align: center;
+      padding: 3rem 1rem;
+      font-size: 0.75rem;
+      opacity: 0.3;
+    }
+
+    /* ============ NAV ============ */
+    .nav-bar {
+      position: fixed;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.15);
+      border: 1px solid rgba(0,0,0,0.25);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .nav-dot:hover, .nav-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.4);
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 768px) {
+      .slide-content { padding: 1.5rem 1rem; }
+      .day-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .day-img { max-height: 200px; overflow: hidden; }
+      .day-img img { min-height: 200px; max-height: 200px; }
+      .food-grid { grid-template-columns: 1fr 1fr; }
+      .food-card-img { height: 100px; }
+      .nav-bar { display: none; }
+      .members-row { gap: 0.6rem; }
+      .member-card { min-width: 90px; padding: 0.8rem; }
+      .member-card .avatar { font-size: 2rem; }
+    }
+    @media (min-width: 1400px) {
+      .slide-content { max-width: 1400px; }
+    }
+    @media (max-width: 768px) {
+      .slide.map-slide { min-height: 100vh !important; height: 100vh !important; }
+    }
+    @media (max-width: 768px) {
+      .day-title { font-size: clamp(1.2rem, 5vw, 1.6rem); margin: 0.2rem 0; }
+      .day-items li { padding: 0.1rem 0; font-size: 0.85rem; line-height: 1.4; }
+      .day-label-accent { font-size: 0.9rem; margin: 0.4rem 0 0.3rem !important; }
+      .day-location { margin-bottom: 0.4rem; }
+      .section-num { margin-bottom: 0.15rem; }
+      .section-heading { margin-bottom: 0.3rem; }
+    }
+
+    /* ============ LANDSCAPE ============ */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .slide { min-height: auto !important; height: auto !important; }
+      .slide.map-slide { min-height: 100vh !important; height: 100vh !important; }
+      .accom-layout { flex-direction: row !important; height: auto !important; min-height: auto !important; }
+      .accom-left { width: 55% !important; min-width: 55% !important; order: unset !important; flex-direction: column !important; }
+      .accom-left > div:first-child { padding: 0.75rem 1rem !important; overflow-y: auto !important; max-height: 80vh !important; }
+      .accom-big-img { order: unset !important; width: 45% !important; min-width: 45% !important; height: auto !important; min-height: 100vh !important; max-height: none !important; }
+      .accom-thumbs, .accom-thumbs--bottom { flex: 0 0 auto !important; display: flex !important; flex-direction: row !important; gap: 4px !important; padding: 6px 0.5rem !important; overflow-x: auto !important; overflow-y: hidden !important; border-left: none !important; border-top: 1px solid var(--border) !important; max-height: none !important; }
+      .accom-thumb, .accom-thumbs--bottom .accom-thumb { flex: 0 0 48px !important; width: 48px !important; height: 48px !important; min-width: 48px !important; min-height: 48px !important; }
+      .day-title { font-size: 1.1rem !important; }
+      .day-items li { font-size: 0.78rem !important; line-height: 1.3 !important; padding: 0.05rem 0 !important; }
+      .hero-content { padding: 1rem; }
+      .hero-title { font-size: 2rem !important; }
+      .members-row { gap: 0.4rem; }
+      .member-card { min-width: 70px; padding: 0.5rem; }
+      .member-card .avatar { font-size: 1.5rem; }
+      .food-grid { grid-template-columns: repeat(4, 1fr); }
+      .food-card-img { height: 70px; }
+    }
+
+    /* ============ TV / WIDESCREEN ============ */
+    @media (min-width: 1200px) and (min-height: 600px) {
+      html { scroll-snap-type: y mandatory; }
+      .slide { height: 100vh; min-height: auto; scroll-snap-align: start; }
+      .day-img img { min-height: 350px; max-height: 450px; }
+    }
+    @media (max-width: 768px) {
+      html { scroll-snap-type: none !important; }
+    }
+    :fullscreen body, :-webkit-full-screen body { scroll-snap-type: y mandatory; }
+    :fullscreen .slide, :-webkit-full-screen .slide { height: 100vh; min-height: auto; }
+
+    .next-steps-card {
+      margin-top: 2rem;
+      padding: 1rem 1.5rem;
+      background: rgba(26,95,138,0.06);
+      border: 1px solid rgba(26,95,138,0.2);
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .day-label-accent { font-weight: 700; color: var(--accent); }
+
+    /* ============ SKI RESORT FEATURES ============ */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    .feature-card .feat-icon { font-size: 2rem; margin-bottom: 0.3rem; }
+    .feature-card .feat-title { font-weight: 700; font-size: 0.95rem; }
+    .feature-card .feat-desc { font-size: 0.82rem; opacity: 0.7; }
+  </style>
+</head>
+<body>
+
+<!-- Navigation Dots -->
+<nav class="nav-bar" id="navBar">
+  <button class="nav-dot active" data-slide="0" title="首頁"></button>
+  <button class="nav-dot" data-slide="1" title="成員 & 航班"></button>
+  <button class="nav-dot" data-slide="2" title="滑雪場介紹"></button>
+  <button class="nav-dot" data-slide="3" title="路線地圖"></button>
+  <button class="nav-dot" data-slide="4" title="Day 1 抵達"></button>
+  <button class="nav-dot" data-slide="5" title="Day 2-4 滑雪"></button>
+  <button class="nav-dot" data-slide="6" title="Day 5 白色戀人"></button>
+  <button class="nav-dot" data-slide="7" title="Day 6 小樽"></button>
+  <button class="nav-dot" data-slide="8" title="Day 7 動物園"></button>
+  <button class="nav-dot" data-slide="9" title="美食"></button>
+  <button class="nav-dot" data-slide="10" title="住宿"></button>
+  <button class="nav-dot" data-slide="11" title="唐草飯店"></button>
+  <button class="nav-dot" data-slide="12" title="東急Stay"></button>
+  <button class="nav-dot" data-slide="13" title="船舶花園"></button>
+  <button class="nav-dot" data-slide="14" title="MYSTAYS"></button>
+  <button class="nav-dot" data-slide="15" title="FAV LUX"></button>
+  <button class="nav-dot" data-slide="16" title="預算"></button>
+  <button class="nav-dot" data-slide="17" title="行前備忘"></button>
+</nav>
+
+<!-- ===================== SLIDE 0: HERO ===================== -->
+<section class="slide overlay-gradient" id="slide-0">
+  <div class="slide-bg" style="background-image:url('images/hero-bg.jpg')"></div>
+  <div class="slide-content hero-content">
+    <div class="hero-flag">🇯🇵</div>
+    <h1 class="hero-title">札幌滑雪家族旅行</h1>
+    <p class="hero-subtitle">北海道・粉雪天堂・親子初體驗</p>
+    <div class="hero-dates">2026 / 3 / 12 (四) — 3 / 19 (四)</div>
+    <div><span class="hero-badge">⛷️ 8 天 7 晚・滑雪＋觀光</span></div>
+  </div>
+  <div class="scroll-hint">
+    <span>向下滑動</span>
+    <span style="font-size:1.2rem">↓</span>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 1: MEMBERS & FLIGHT ===================== -->
+<section class="slide overlay-dark" id="slide-1">
+  <div class="slide-bg" style="background-image:url('images/flight-bg.jpg')"></div>
+  <div class="slide-content">
+    <div class="section-num">01</div>
+    <h2 class="section-heading">出遊成員 & 航班</h2>
+
+    <div class="members-row" style="margin-bottom:2rem;">
+      <div class="member-card"><div class="avatar">👨</div><div class="name">爸爸</div><div class="age">38 歲</div></div>
+      <div class="member-card"><div class="avatar">👩</div><div class="name">媽媽</div><div class="age">40 歲</div></div>
+      <div class="member-card"><div class="avatar">👧</div><div class="name">姊姊</div><div class="age">5 歲</div></div>
+      <div class="member-card"><div class="avatar">👶</div><div class="name">弟弟</div><div class="age">3 歲</div></div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:1.5rem;border:1px solid rgba(255,255,255,0.1);">
+      <div class="flight-row">
+        <div class="flight-city"><div class="code">TPE</div><div class="detail">桃園國際機場</div></div>
+        <div class="flight-middle"><div class="num">直飛・約 4h</div><div class="line"></div><div class="num">星宇 / 長榮 / 華航</div></div>
+        <div class="flight-city"><div class="code">CTS</div><div class="detail">新千歲機場</div></div>
+      </div>
+      <div class="info-pills" style="justify-content:center;margin-top:1rem;margin-bottom:0;">
+        <div class="pill"><span class="label">狀態</span><span class="value">🔍 航班待訂</span></div>
+        <div class="pill"><span class="label">估價（來回/人）</span><span class="value">NT$7,000–15,000</span></div>
+        <div class="pill"><span class="label">時差</span><span class="value">日本比台灣快 1hr</span></div>
+        <div class="pill"><span class="label">天數</span><span class="value">8天7夜</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 2: SKI RESORT ===================== -->
+<section class="slide overlay-dark" id="slide-2">
+  <div class="slide-bg" style="background-image:url('images/ski-bg.jpg')"></div>
+  <div class="slide-content">
+    <div class="section-num">02 — 滑雪場</div>
+    <h2 class="section-heading">⛷️ 札幌手稻滑雪場</h2>
+    <p class="section-desc">Sapporo Teine — 距市中心僅 40 分鐘，奧林匹亞區超親子友善</p>
+
+    <div class="info-pills">
+      <div class="pill"><span class="label">雪季</span><span class="value">2025/11 — 2026/5</span></div>
+      <div class="pill"><span class="label">營業時間</span><span class="value">9:00 — 20:00</span></div>
+      <div class="pill"><span class="label">距離</span><span class="value">札幌市區 40 分鐘</span></div>
+      <div class="pill"><span class="label">適合</span><span class="value">初學者・親子</span></div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feat-icon">🦕</div>
+        <div class="feat-title">恐龍兒童樂園</div>
+        <div class="feat-desc">雪盆、雪地電扶梯<br>3歲弟弟也能玩！</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🛡️</div>
+        <div class="feat-title">防風雪遮罩</div>
+        <div class="feat-desc">初學者電動步道<br>不怕風雪吹</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🗣️</div>
+        <div class="feat-title">中文教練</div>
+        <div class="feat-desc">Jstyle 中文滑雪學校<br>可預約教學</div>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon">🚌</div>
+        <div class="feat-title">BigRuns 巴士</div>
+        <div class="feat-desc">市區直達滑雪場<br>巴士+纜車套票 ¥8,200</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 3: MAP (Leaflet) ===================== -->
+<section class="slide map-slide" id="slide-3" style="background:#e8f0f5;">
+  <div class="slide-content">
+    <div class="map-container">
+      <div id="leafletMap" style="width:100%;height:100%;"></div>
+    </div>
+    <div class="map-float-card" id="mapCard">
+      <div class="map-card-header">
+        <div class="section-num" style="font-size:14px;margin:0;">03</div>
+        <h3 style="margin:0;font-size:22px;font-weight:700;">路線總覽</h3>
+        <button class="map-card-toggle" id="mapCardToggle" aria-label="收合">▾</button>
+      </div>
+      <div class="map-card-body" id="mapCardBody">
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#4285F4;"></div>
+          <div class="map-route-line" style="background:#4285F4;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">A. 新千歲機場 (CTS)</div>
+            <div class="map-route-detail">3/12 抵達 ✈️ → JR快速到札幌 37min</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#0F9D58;"></div>
+          <div class="map-route-line" style="background:#0F9D58;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">B. 札幌市中心（住宿）</div>
+            <div class="map-route-detail">全程住宿・觀光美食基地 🏨</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#F4B400;"></div>
+          <div class="map-route-line" style="background:#F4B400;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">C. 手稻滑雪場</div>
+            <div class="map-route-detail">Day 2-4 滑雪 ⛷️ ・巴士 40min</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#E85D26;"></div>
+          <div class="map-route-line" style="background:transparent;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">D. 小樽</div>
+            <div class="map-route-detail">Day 6 運河小鎮一日遊 🚂 ・JR 40min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 4: DAY 1 ===================== -->
+<section class="slide slide-split" id="slide-4" style="background:#f0f5f8;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">04 — 行程</div>
+          <span class="day-badge badge-travel">抵達</span>
+          <div class="day-title">Day 1<br>抵達札幌</div>
+          <div class="day-location">📍 3/12（四）｜ 新千歲機場 → 札幌市區</div>
+          <ul class="day-items">
+            <li>抵達新千歲機場</li>
+            <li>搭 <span class="highlight">JR 快速 Airport</span> 到札幌站（37 分鐘，¥1,150）</li>
+            <li>入住飯店、放行李</li>
+            <li>🍜 午餐：札幌站拉麵（すみれ / 一幻拉麵）</li>
+            <li>下午輕鬆逛：<span class="highlight">大通公園</span> → <span class="highlight">狸小路商店街</span></li>
+            <li>🍛 晚餐：湯咖哩（GARAKU）</li>
+            <li>早點休息，隔天滑雪！💤</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="day1-big">
+          <div class="accom-thumb active"><img src="images/shopping-thumb.jpg" alt="新千歲機場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/airport-shop-thumb.jpg" alt="JR列車" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ski-action-thumb.jpg" alt="札幌街景" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ramen-thumb.jpg" alt="拉麵" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/odori-park-thumb.jpg" alt="大通公園" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/sapporo-street-thumb.jpg" alt="商店街" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="day1-big">
+        <img src="images/shopping.jpg" alt="Day 1 抵達" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 5: DAY 2-4 SKI ===================== -->
+<section class="slide slide-split" id="slide-5" style="background:#f0f5f8;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">05 — 行程</div>
+          <span class="day-badge badge-ski">滑雪</span>
+          <div class="day-title">Day 2-4 ⛷️<br>手稻滑雪三日</div>
+          <div class="day-location">📍 3/13-3/15 ｜ 札幌手稻滑雪場 奧林匹亞區</div>
+
+          <div class="day-label-accent" style="margin-bottom:0.4rem;">Day 2 — 3/13 初體驗</div>
+          <ul class="day-items">
+            <li>07:30 搭 BigRuns 巴士前往手稻</li>
+            <li>大人：初學者滑道 / 小孩：🦕 恐龍兒童樂園</li>
+            <li>雪場午餐 → 繼續滑雪</li>
+            <li>16:00 巴士返回 → 🍖 晚餐：成吉思汗烤羊肉（だるま）</li>
+          </ul>
+
+          <div class="day-label-accent" style="margin:0.6rem 0 0.4rem;">Day 3 — 3/14 中文教練</div>
+          <ul class="day-items">
+            <li>預約 <span class="highlight">Jstyle 中文教練</span>・帶姊姊初體驗</li>
+            <li>弟弟繼續兒童樂園玩雪盆</li>
+            <li>🍣 晚餐：迴轉壽司 根室花まる</li>
+          </ul>
+
+          <div class="day-label-accent" style="margin:0.6rem 0 0.4rem;">Day 4 — 3/15 最後衝刺</div>
+          <ul class="day-items">
+            <li>嘗試不同滑道 or 兒童樂園最後一玩</li>
+            <li>🍜 晚餐：味噌拉麵名店（彩未 / 信玄）</li>
+            <li>🛍️ 狸小路逛街買藥妝</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="ski-big">
+          <div class="accom-thumb active"><img src="images/ski-action-thumb.jpg" alt="滑雪" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ski-bg-thumb.jpg" alt="雪場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ski-action-thumb.jpg" alt="親子滑雪" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/kids-snow-thumb.jpg" alt="雪盆" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/snow-park-thumb.jpg" alt="羊肉" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/lamb-thumb.jpg" alt="壽司" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="ski-big">
+        <img src="images/ski-action.jpg" alt="滑雪" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 6: DAY 5 白色戀人 ===================== -->
+<section class="slide slide-split" id="slide-6" style="background:#f0f5f8;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">06 — 行程</div>
+          <span class="day-badge badge-play">觀光</span>
+          <div class="day-title">Day 5<br>白色戀人＋市區</div>
+          <div class="day-location">📍 3/16（一）｜ 白色戀人公園 → 市區</div>
+          <ul class="day-items">
+            <li>10:00 <span class="highlight">白色戀人公園</span>（地鐵東西線→宮の沢站）</li>
+            <li>🍪 工廠參觀・餅乾 DIY 體驗</li>
+            <li>庭園拍照・白色戀人冰淇淋 🍦</li>
+            <li>13:00 返回市區</li>
+            <li>🦀 14:00 <span class="highlight">二條市場</span>（帝王蟹・海鮮丼）</li>
+            <li>🔋 15:30 回飯店午休（小孩補眠）</li>
+            <li>🌃 17:00 札幌電視塔 or JR Tower T38 看夜景</li>
+            <li>🍛 18:30 晚餐：湯咖哩 Suage+</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="day5-big">
+          <div class="accom-thumb active"><img src="images/curry-thumb.jpg" alt="白色戀人" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/chocolate-thumb.jpg" alt="巧克力" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/sweets-thumb.jpg" alt="冰淇淋" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ice-cream-thumb.jpg" alt="帝王蟹" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/crab-thumb.jpg" alt="札幌塔" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tower-thumb.jpg" alt="湯咖哩" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="day5-big">
+        <img src="images/curry.jpg" alt="白色戀人公園" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 7: DAY 6 小樽 ===================== -->
+<section class="slide slide-split" id="slide-7" style="background:#f0f5f8;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">07 — 行程</div>
+          <span class="day-badge badge-travel">一日遊</span>
+          <div class="day-title">Day 6 🚂<br>小樽一日遊</div>
+          <div class="day-location">📍 3/17（二）｜ JR 札幌→小樽 約 40 分鐘</div>
+          <ul class="day-items">
+            <li>08:30 搭 JR 到小樽（¥640）</li>
+            <li>🦀 09:30 <span class="highlight">三角市場</span>早午餐（海鮮丼・烤蟹）</li>
+            <li>🏞️ 10:30 <span class="highlight">小樽運河</span>散步・拍照</li>
+            <li>🎵 11:30 堺町通商店街（音樂盒堂・北一硝子）</li>
+            <li>🍰 <span class="highlight">LeTAO</span> 雙層起司蛋糕必吃！</li>
+            <li>🐧 14:00 小樽水族館（企鵝散步！）</li>
+            <li>16:30 搭 JR 返回札幌</li>
+            <li>🍺 18:00 晚餐：<span class="highlight">札幌啤酒園</span>（啤酒+烤羊肉）</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="otaru-big">
+          <div class="accom-thumb active"><img src="images/otaru-canal-thumb.jpg" alt="小樽運河" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/ice-cream-thumb.jpg" alt="海鮮" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/seafood-thumb.jpg" alt="音樂盒" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/music-box-thumb.jpg" alt="蛋糕" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/cheesecake-thumb.jpg" alt="企鵝" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/penguin-thumb.jpg" alt="啤酒" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="otaru-big">
+        <img src="images/otaru-canal.jpg" alt="小樽運河" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 8: DAY 7 圓山動物園 ===================== -->
+<section class="slide slide-split" id="slide-8" style="background:#f0f5f8;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">08 — 行程</div>
+          <span class="day-badge badge-play">觀光</span>
+          <span class="day-badge badge-shop">購物</span>
+          <div class="day-title">Day 7<br>動物園＋購物</div>
+          <div class="day-location">📍 3/18（三）｜ 圓山公園・市區最後購物</div>
+          <ul class="day-items">
+            <li>09:30 地鐵到圓山公園站</li>
+            <li>⛩️ 10:00 <span class="highlight">北海道神宮</span>參拜</li>
+            <li>🐻‍❄️ 11:00 <span class="highlight">圓山動物園</span>（北極熊・企鵝・紅毛猩猩）</li>
+            <li>室內展館多，冬天也很好逛</li>
+            <li>🔋 14:00 回飯店午休</li>
+            <li>🛍️ 15:30 最後購物時間：</li>
+            <li>狸小路（藥妝・伴手禮）</li>
+            <li>大丸百貨（六花亭・ROYCE'）</li>
+            <li>唐吉訶德（24小時營業）</li>
+            <li>🍽️ 18:00 最後晚餐 → 整理行李</li>
+          </ul>
+          <div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(26,95,138,0.08);border-radius:8px;display:inline-block;">
+            <strong>Day 8 — 3/19 回家 🏠</strong><br>
+            <span style="font-size:0.9rem;opacity:0.7;">JR 到機場 → 新千歲逛街（哆啦A夢樂園！）→ ✈️ 回台灣</span>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="day7-big">
+          <div class="accom-thumb active"><img src="images/polar-bear-thumb.jpg" alt="北極熊" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/sweets-thumb.jpg" alt="神宮" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/shrine-thumb.jpg" alt="企鵝" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/sapporo-street-thumb.jpg" alt="購物" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/souvenir-thumb.jpg" alt="伴手禮" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/shopping-thumb.jpg" alt="機場" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="day7-big">
+        <img src="images/polar-bear.jpg" alt="北極熊" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 9: FOOD ===================== -->
+<section class="slide overlay-bottom" id="slide-9">
+  <div class="slide-bg" style="background-image:url('images/ramen.jpg')"></div>
+  <div class="slide-content" style="align-self:flex-end;padding-bottom:3rem;">
+    <div class="section-num">09</div>
+    <h2 class="section-heading">🍜 北海道必吃清單</h2>
+    <p class="section-desc">札幌是吃貨的天堂，每一餐都不想浪費</p>
+    <div class="food-grid">
+      <div class="food-card">
+        <img class="food-card-img" src="images/ramen-thumb.jpg" alt="味噌拉麵" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍜 味噌拉麵</div><div class="food-desc">札幌名物！すみれ・彩未・信玄</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/crab-thumb.jpg" alt="帝王蟹" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🦀 帝王蟹 / 毛蟹</div><div class="food-desc">二條市場・場外市場</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/curry-thumb.jpg" alt="湯咖哩" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍛 湯咖哩</div><div class="food-desc">GARAKU・Suage+</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/lamb-thumb.jpg" alt="成吉思汗烤羊肉" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍖 成吉思汗烤羊肉</div><div class="food-desc">だるま（達摩）必吃</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/sushi-thumb.jpg" alt="迴轉壽司" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍣 迴轉壽司</div><div class="food-desc">根室花まる・超新鮮</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/sweets-thumb.jpg" alt="甜點" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍰 甜點天堂</div><div class="food-desc">六花亭・LeTAO・ROYCE'</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/milk-thumb.jpg" alt="北海道牛奶" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🥛 北海道牛奶</div><div class="food-desc">超濃超好喝・便利商店就有</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="images/beer-thumb.jpg" alt="札幌啤酒" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍺 札幌啤酒園</div><div class="food-desc">啤酒＋烤羊肉吃到飽</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 10: ACCOMMODATION ===================== -->
+<section class="slide overlay-dark" id="slide-10">
+  <div class="slide-bg" style="background-image:url('images/hotel-bg.jpg')"></div>
+  <div class="slide-content">
+    <div class="section-num">10</div>
+    <h2 class="section-heading">🏨 住宿候選</h2>
+    <p class="section-desc">全程住札幌市中心，滑雪搭巴士往返・⚠️ 3/12-15 嵐演唱會期間房價高，建議提早訂</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;max-width:1000px;margin:0 auto;">
+
+      <!-- Hotel 1 -->
+      <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:1rem 1.2rem;">
+        <div style="font-size:0.7rem;opacity:0.5;letter-spacing:1px;margin-bottom:0.2rem;">親子首選 👶</div>
+        <div style="font-weight:900;font-size:1.2rem;margin-bottom:0.3rem;">🏆 唐草飯店札幌</div>
+        <div style="font-size:0.88rem;opacity:0.8;line-height:1.6;">
+          📍 狸小路商店街旁<br>
+          ⭐ 8.5+ ｜ 🛁 大浴場 ｜ 🎮 兒童遊戲室<br>
+          👶 12歲以下免費 ｜ 有連通房<br>
+          <span style="color:#ff8f62;font-weight:700;">~NT$1,700-2,500/晚/房</span>
+        </div>
+        <a class="ext-link" href="https://www.karaksa-hotel.com/sapporo/" target="_blank" style="font-size:0.85rem;">🔗 官網</a>
+      </div>
+
+      <!-- Hotel 2 -->
+      <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:1rem 1.2rem;">
+        <div style="font-size:0.7rem;opacity:0.5;letter-spacing:1px;margin-bottom:0.2rem;">公寓式 🏠</div>
+        <div style="font-weight:900;font-size:1.2rem;margin-bottom:0.3rem;">⭐ 東急Stay札幌大通</div>
+        <div style="font-size:0.88rem;opacity:0.8;line-height:1.6;">
+          📍 大通公園旁・地鐵3分鐘<br>
+          ⭐ 8.8 ｜ 🧺 洗衣烘乾機 ｜ 🍳 迷你廚房<br>
+          👶 家庭4人房 33㎡<br>
+          <span style="color:#ff8f62;font-weight:700;">~NT$2,500-3,800/晚</span>
+        </div>
+        <a class="ext-link" href="https://www.tokyustay.co.jp/chn_tc/hotel/SPO/" target="_blank" style="font-size:0.85rem;">🔗 官網</a>
+      </div>
+
+      <!-- Hotel 3 -->
+      <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:1rem 1.2rem;">
+        <div style="font-size:0.7rem;opacity:0.5;letter-spacing:1px;margin-bottom:0.2rem;">早餐之王 🍳</div>
+        <div style="font-weight:900;font-size:1.2rem;margin-bottom:0.3rem;">🦐 船舶花園薄野飯店</div>
+        <div style="font-size:0.88rem;opacity:0.8;line-height:1.6;">
+          📍 中島公園站旁<br>
+          ⭐ 9.1 ｜ 🍣 鮭魚卵・干貝・甜蝦吃到飽<br>
+          👶 18歲以下免費！🛁 大浴場<br>
+          <span style="color:#ff8f62;font-weight:700;">~NT$1,500-2,100/晚/房</span>
+        </div>
+        <a class="ext-link" href="https://www.vessel-hotel.jp/inn/sapporonakajima/" target="_blank" style="font-size:0.85rem;">🔗 官網</a>
+      </div>
+
+      <!-- Hotel 4 -->
+      <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:1rem 1.2rem;">
+        <div style="font-size:0.7rem;opacity:0.5;letter-spacing:1px;margin-bottom:0.2rem;">交通王 🚉</div>
+        <div style="font-weight:900;font-size:1.2rem;margin-bottom:0.3rem;">🚄 MYSTAYS札幌Aspen</div>
+        <div style="font-size:0.88rem;opacity:0.8;line-height:1.6;">
+          📍 札幌站步行3分鐘<br>
+          ⭐ 8.7 ｜ 搭JR/巴士最方便<br>
+          👶 12歲以下免費 ｜ 25㎡ 寬敞<br>
+          <span style="color:#ff8f62;font-weight:700;">~NT$1,300-1,900/晚/房</span>
+        </div>
+        <a class="ext-link" href="https://www.mystays.com/zh-tw/hotel-mystays-sapporo-aspen-hokkaido/" target="_blank" style="font-size:0.85rem;">🔗 官網</a>
+      </div>
+
+      <!-- Hotel 5 - full width -->
+      <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:1rem 1.2rem;grid-column:1/-1;">
+        <div style="font-size:0.7rem;opacity:0.5;letter-spacing:1px;margin-bottom:0.2rem;">大空間公寓 🏡</div>
+        <div style="font-weight:900;font-size:1.2rem;margin-bottom:0.3rem;">🏠 FAV LUX 札幌薄野</div>
+        <div style="font-size:0.88rem;opacity:0.8;line-height:1.6;">
+          📍 薄野區 ｜ ⭐ Google 4.4 ｜ 全配廚房・洗衣機・微波爐 ｜ 自助入住・寬敞公寓型 ｜ 
+          <span style="color:#ff8f62;font-weight:700;">~NT$2,100-3,200/晚</span> ｜
+          <a class="ext-link" href="https://fav-hotels.com/hotels/lux/sapporosusukino/" target="_blank" style="font-size:0.85rem;">🔗 官網</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="budget-note" style="margin-top:1rem;opacity:0.6;">7晚估算：NT$14,700（FAV LUX 1間）～ NT$35,000（唐草 2間）<br>💡 建議：前3天滑雪住札幌站旁（MYSTAYS），後4天觀光住狸小路（唐草）也是好策略</div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 11: ACCOMMODATION - KARAKSA ===================== -->
+<section class="slide slide-split" id="slide-11" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">11 — 住宿候選</div>
+          <span class="day-badge badge-play">親子首選</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.5+</span>
+          <div class="day-title">🏆 唐草飯店札幌</div>
+          <div class="day-location">📍 狸小路商店街旁 ｜ 連通房・雙人房 ｜ 2026/3/12-3/19</div>
+          <ul class="day-items">
+            <li>🎮 兒童遊戲室、漫畫區、免費冰棒</li>
+            <li>🛁 大浴場＋露天浴池、按摩椅</li>
+            <li>👶 <span class="highlight">12歲以下不佔床免費</span>、有連通房（最多6人）</li>
+            <li>🛍️ 狸小路商店街正對面，唐吉訶德步行2分鐘</li>
+            <li>🚇 地鐵薄野站步行5分、大通站步行6分</li>
+            <li>🚌 新千歲機場巴士站步行2分鐘</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$1,700-2,500</span><span style="opacity:0.6;"> /晚/房</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">7晚兩間: NT$23,800-35,000</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.karaksa-hotel.com/sapporo/" target="_blank">🔗 官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="karaksa-big">
+          <div class="accom-thumb active"><img src="images/karaksa/01-exterior.jpg" alt="唐草飯店外觀" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/02-lobby.jpg" alt="大廳" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/05-room.jpg" alt="客房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/07-connecting.jpg" alt="連通房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/04-bath2.jpg" alt="大浴場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/06-facility.jpg" alt="設施" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/karaksa/09-twin.jpg" alt="雙床房" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="karaksa-big">
+        <img src="images/karaksa/01-exterior.jpg" alt="唐草飯店札幌" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 12: ACCOMMODATION - TOKYU STAY ===================== -->
+<section class="slide slide-split" id="slide-12" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">12 — 住宿候選</div>
+          <span class="day-badge badge-travel">公寓式</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.8</span>
+          <div class="day-title">⭐ 東急Stay札幌大通</div>
+          <div class="day-location">📍 大通公園旁・地鐵大通站步行3分鐘 ｜ 家庭4人房 33㎡ ｜ 2026/3/12-3/19</div>
+          <ul class="day-items">
+            <li>🧺 房內<span class="highlight">洗衣烘乾機</span>＋迷你廚房＋微波爐</li>
+            <li>🍳 可自炊！長住超方便，帶小孩熱牛奶、煮宵夜</li>
+            <li>🛁 獨立浴缸，寬敞衛浴</li>
+            <li>🍽️ 早餐有北海道軟冰淇淋＋湯咖哩</li>
+            <li>📍 大通公園正旁邊，札幌電視塔步行7分鐘</li>
+            <li>🚇 三線匯集大通站，去哪都方便</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$2,500-3,800</span><span style="opacity:0.6;"> /晚</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">7晚: NT$17,500-26,600</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.tokyustay.co.jp/chn_tc/hotel/SPO/" target="_blank">🔗 官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="tokyu-big">
+          <div class="accom-thumb active"><img src="images/tokyu-stay/02-exterior.jpg" alt="東急Stay外觀" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/06-room.jpg" alt="客房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/01-washer.jpg" alt="洗衣烘乾機" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/03-kitchen.jpg" alt="迷你廚房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/09-breakfast1.jpg" alt="早餐" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/05-restaurant.jpg" alt="餐廳" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/tokyu-stay/08-view.jpg" alt="窗景" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="tokyu-big">
+        <img src="images/tokyu-stay/02-exterior.jpg" alt="東急Stay札幌大通" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 13: ACCOMMODATION - VESSEL INN ===================== -->
+<section class="slide slide-split" id="slide-13" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">13 — 住宿候選</div>
+          <span class="day-badge badge-food">早餐之王</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 9.1</span>
+          <div class="day-title">🦐 船舶花園薄野飯店</div>
+          <div class="day-location">📍 中島公園站旁（步行1分鐘）｜ 雙人房×2 ｜ 2026/3/12-3/19</div>
+          <ul class="day-items">
+            <li>🍣 <span class="highlight">鮭魚卵・干貝・甜蝦早餐吃到飽</span>！自己做海鮮丼</li>
+            <li>🍛 早餐還有湯咖哩、成吉思汗、北海道名物</li>
+            <li>👶 <span class="highlight">18歲以下免費！</span>超省親子預算</li>
+            <li>🛁 大浴場，滑雪後泡澡超舒服</li>
+            <li>🏞️ 旁邊就是中島公園，散步賞景</li>
+            <li>🚌 飯店門口有機場巴士站</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$1,500-2,100</span><span style="opacity:0.6;"> /晚/房</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">7晚兩間: NT$21,000-29,400</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.vessel-hotel.jp/inn/sapporo/" target="_blank">🔗 官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="vessel-big">
+          <div class="accom-thumb active"><img src="images/vessel-inn/01-exterior.jpg" alt="船舶花園飯店外觀" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/02-room.jpg" alt="客房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/03-room2.jpg" alt="雙床房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/04-breakfast.jpg" alt="海鮮早餐" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/05-bath.jpg" alt="大浴場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/06-food.jpg" alt="北海道美食" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/vessel-inn/07-lobby.jpg" alt="大廳" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="vessel-big">
+        <img src="images/vessel-inn/01-exterior.jpg" alt="船舶花園薄野飯店" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 14: ACCOMMODATION - MYSTAYS ===================== -->
+<section class="slide slide-split" id="slide-14" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">14 — 住宿候選</div>
+          <span class="day-badge badge-travel">交通王</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.7</span>
+          <div class="day-title">🚄 MYSTAYS 札幌 Aspen</div>
+          <div class="day-location">📍 札幌站步行3分鐘 ｜ 雙人房25㎡×2 ｜ 2026/3/12-3/19</div>
+          <ul class="day-items">
+            <li>🚉 <span class="highlight">札幌站步行3分鐘</span>，搭JR/巴士最方便</li>
+            <li>⛷️ 滑雪巴士出發點就在附近，省時省力</li>
+            <li>👶 <span class="highlight">12歲以下免費</span>入住</li>
+            <li>📦 25㎡ 寬敞雙人房，有行李空間</li>
+            <li>🍜 步行可達拉麵共和國、大丸百貨</li>
+            <li>💰 五間候選中<span class="highlight">最便宜</span>！CP值超高</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$1,300-1,900</span><span style="opacity:0.6;"> /晚/房</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">7晚兩間: NT$18,200-26,600</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.mystays.com/zh-tw/hotel-mystays-sapporo-aspen-hokkaido/" target="_blank">🔗 官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="mystays-big">
+          <div class="accom-thumb active"><img src="images/mystays/01.jpg" alt="MYSTAYS餐廳" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/02.jpg" alt="客房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/03.jpg" alt="設施" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/04.jpg" alt="浴室" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/05.jpg" alt="大廳" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/06.jpg" alt="走廊" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/mystays/07.jpg" alt="外觀" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="mystays-big">
+        <img src="images/mystays/01.jpg" alt="MYSTAYS 札幌 Aspen" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 15: ACCOMMODATION - FAV LUX ===================== -->
+<section class="slide slide-split" id="slide-15" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">15 — 住宿候選</div>
+          <span class="day-badge badge-culture">公寓型</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ Google 4.4</span>
+          <div class="day-title">🏠 FAV LUX 札幌薄野</div>
+          <div class="day-location">📍 薄野區 ｜ 公寓式大空間 ｜ 2026/3/12-3/19</div>
+          <ul class="day-items">
+            <li>🍳 <span class="highlight">全配廚房</span>：瓦斯爐、冰箱、微波爐、鍋碗瓢盆</li>
+            <li>🧺 房內洗衣機＋烘乾機</li>
+            <li>📐 寬敞公寓型，適合一家人住一間大房</li>
+            <li>🔑 自助入住、不受時間限制</li>
+            <li>🏙️ 薄野鬧區，走路就有超商、居酒屋</li>
+            <li>💰 <span class="highlight">只需訂一間</span>，7晚最低 NT$14,700</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$2,100-3,200</span><span style="opacity:0.6;"> /晚</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">7晚: NT$14,700-22,400</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://fav-hotels.com/hotels/lux/sapporosusukino/" target="_blank">🔗 官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="favlux-big">
+          <div class="accom-thumb active"><img src="images/fav-lux/01-mv1.webp" alt="FAV LUX外觀" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/02-mv2.webp" alt="客廳" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/03-mv3.webp" alt="廚房" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/04-mv4.webp" alt="臥室" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/05-mv5.webp" alt="浴室" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/06-mv6.webp" alt="設施" loading="lazy"></div>
+          <div class="accom-thumb"><img src="images/fav-lux/08-room1.webp" alt="房間全景" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="favlux-big">
+        <img src="images/fav-lux/01-mv1.webp" alt="FAV LUX 札幌薄野" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 16: BUDGET ===================== -->
+<section class="slide" id="slide-16" style="background:#f0f5f8;">
+
+  <div class="slide-content" style="text-align:center;">
+    <div class="section-num">16</div>
+    <h2 class="section-heading">💰 預算估算</h2>
+    <p class="section-desc" style="margin:0 auto 1.5rem;">4 人（2 大 2 小）・8 天 7 晚・台幣</p>
+
+    <table class="budget-table">
+      <thead><tr><th>項目</th><th>金額（NT$）</th></tr></thead>
+      <tbody>
+        <tr><td>✈️ 機票（4 人來回・直飛 CTS）</td><td>28,000 – 60,000</td></tr>
+        <tr><td>🏨 住宿（7 晚・市區飯店或 Airbnb）</td><td>35,000 – 60,000</td></tr>
+        <tr><td>⛷️ 滑雪 3 天（纜車＋裝備＋雪衣＋兒童樂園）</td><td>33,000 – 40,000</td></tr>
+        <tr><td>🍜 餐飲（8 天・4 人）</td><td>24,000 – 32,000</td></tr>
+        <tr><td>🚃 交通（JR / 地鐵 / 巴士）</td><td>5,000 – 8,000</td></tr>
+        <tr><td>🎫 門票 + 體驗</td><td>3,000 – 5,000</td></tr>
+        <tr><td>🛍️ 購物 + 伴手禮</td><td>10,000 – 20,000</td></tr>
+        <tr class="budget-total"><td>預估合計</td><td>NT$138,000 – 225,000</td></tr>
+      </tbody>
+    </table>
+    <div class="budget-note">以中等消費估算 ・ 實際依航班和住宿選擇而定</div>
+  </div>
+</section>
+
+<!-- ===================== SLIDE 17: NOTES ===================== -->
+<section class="slide" id="slide-17" style="background:#e8f0f5;">
+  <div class="slide-content" style="text-align:center;">
+    <div class="section-num">17</div>
+    <h2 class="section-heading">📋 行前備忘</h2>
+    <p class="section-desc" style="margin:0 auto 1.5rem;">出發前需要準備的事項</p>
+
+    <div class="notes-grid">
+      <div class="note-card">
+        <span class="note-icon">🛂</span>
+        <div><div class="note-title">護照免簽</div><div class="note-text">台灣護照 90 天免簽<br>護照效期需 6 個月以上</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">⛷️</span>
+        <div><div class="note-title">滑雪裝備</div><div class="note-text">雪場可租（雪板+靴+杖+雪衣褲）<br>或自帶雪衣褲省租借費</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">🧣</span>
+        <div><div class="note-title">三月穿著 (-2°C～4°C)</div><div class="note-text">厚羽絨・保暖內衣・防水雪靴<br>手套・帽子・暖暖包・洋蔥式穿法</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">👶</span>
+        <div><div class="note-title">推車 vs 背巾</div><div class="note-text">雪地推車不好推！<br>建議帶背巾・弟弟走不動時背著</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">📱</span>
+        <div><div class="note-title">WiFi / eSIM</div><div class="note-text">租 WiFi 分享器或買 eSIM<br>日本 SIM 卡也很方便</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">💳</span>
+        <div><div class="note-title">IC 卡 + 信用卡</div><div class="note-text">買 Suica/Kitaca 搭車超方便<br>日本刷卡普及率高</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">🔌</span>
+        <div><div class="note-title">插座</div><div class="note-text">日本與台灣插座相同<br>不需要轉接頭 👍</div></div>
+      </div>
+      <div class="note-card">
+        <span class="note-icon">⏰</span>
+        <div><div class="note-title">新千歲機場</div><div class="note-text">超好逛！提前 3 小時到<br>哆啦A夢樂園・ROYCE' 巧克力世界</div></div>
+      </div>
+    </div>
+
+    <div class="next-steps-card">
+      <div style="font-size:1.2rem;margin-bottom:0.3rem;">📋 <strong>下一步</strong></div>
+      <div style="font-size:0.9rem;opacity:0.7;">訂機票 → 訂飯店 → 預約滑雪教練 → 準備冬裝 → 出發！🇯🇵⛷️</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  Made with 🎿 by 旅遊特務 ｜ 最後更新：2026 年 2 月<br>
+  <span style="cursor:pointer;text-decoration:underline;" onclick="enterFullscreen()">📺 全螢幕簡報模式</span>
+</footer>
+
+<script>
+  // ============ Leaflet Map ============
+  document.addEventListener('DOMContentLoaded', function() {
+    var mapEl = document.getElementById('leafletMap');
+    if (!mapEl) return;
+
+    var map = L.map('leafletMap', {
+      center: [43.15, 141.2],
+      zoom: 10,
+      zoomControl: true,
+      scrollWheelZoom: false,
+      dragging: !L.Browser.mobile
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    var spots = [
+      {id:'A', name:'新千歲機場 (CTS)', lat:42.7752, lng:141.6925, color:'#4285F4'},
+      {id:'B', name:'札幌市中心（住宿）', lat:43.0687, lng:141.3508, color:'#0F9D58'},
+      {id:'C', name:'手稻滑雪場', lat:43.1028, lng:141.1996, color:'#F4B400'},
+      {id:'D', name:'小樽', lat:43.1907, lng:140.9946, color:'#E85D26'}
+    ];
+
+    var bounds = L.latLngBounds();
+    spots.forEach(function(s) {
+      var marker = L.circleMarker([s.lat, s.lng], {
+        radius: 12,
+        fillColor: s.color,
+        fillOpacity: 1,
+        color: '#fff',
+        weight: 3
+      }).addTo(map);
+
+      marker.bindTooltip('<b>' + s.id + '</b>', {
+        permanent: true,
+        direction: 'center',
+        className: 'marker-label'
+      });
+
+      marker.bindPopup(
+        '<div style="font-family:Noto Sans TC,sans-serif;min-width:160px;">' +
+        '<div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + s.id + '. ' + s.name + '</div>' +
+        '</div>'
+      );
+
+      bounds.extend([s.lat, s.lng]);
+    });
+
+    // Draw lines between spots
+    var lineCoords = spots.map(function(s) { return [s.lat, s.lng]; });
+    L.polyline([lineCoords[0], lineCoords[1]], {color:'#4285F4', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
+    L.polyline([lineCoords[1], lineCoords[2]], {color:'#0F9D58', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
+    L.polyline([lineCoords[1], lineCoords[3]], {color:'#E85D26', weight:4, opacity:0.7, dashArray:'8,8'}).addTo(map);
+
+    var isMobile = window.innerWidth <= 768;
+    map.fitBounds(bounds, {
+      padding: isMobile ? [30, 30] : [60, 340]
+    });
+
+    // Fix Leaflet grey tiles: invalidateSize when map slide becomes visible
+    setTimeout(function() { map.invalidateSize(); }, 300);
+    var mapObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          setTimeout(function() { map.invalidateSize(); map.fitBounds(bounds, { padding: isMobile ? [30,30] : [60,340] }); }, 100);
+        }
+      });
+    }, { threshold: 0.1 });
+    var mapSlide = document.getElementById('slide-3');
+    if (mapSlide) mapObs.observe(mapSlide);
+
+    // Map card toggle
+    var toggle = document.getElementById('mapCardToggle');
+    var body = document.getElementById('mapCardBody');
+    if (toggle && body) {
+      toggle.addEventListener('click', function() {
+        var collapsed = body.style.display === 'none';
+        body.style.display = collapsed ? '' : 'none';
+        toggle.textContent = collapsed ? '▾' : '▴';
+      });
+    }
+  });
+
+  // ============ Leaflet marker label style ============
+  var style = document.createElement('style');
+  style.textContent = '.marker-label { background:transparent !important; border:none !important; box-shadow:none !important; color:#fff; font-size:13px; font-weight:700; }';
+  document.head.appendChild(style);
+
+  // ============ Fullscreen presentation ============
+  function enterFullscreen() {
+    document.documentElement.requestFullscreen?.() ||
+    document.documentElement.webkitRequestFullscreen?.();
+  }
+
+  // ============ Nav dots ============
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.nav-dot');
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const idx = parseInt(dot.dataset.slide);
+      slides[idx]?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = [...slides].indexOf(e.target);
+        dots.forEach(d => d.classList.remove('active'));
+        dots[idx]?.classList.add('active');
+      }
+    });
+  }, { threshold: 0.4 });
+  slides.forEach(s => obs.observe(s));
+
+  // ============ Keyboard navigation ============
+  document.addEventListener('keydown', (e) => {
+    const current = [...dots].findIndex(d => d.classList.contains('active'));
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') && current < slides.length - 1) {
+      e.preventDefault();
+      slides[current + 1]?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowLeft') && current > 0) {
+      e.preventDefault();
+      slides[current - 1]?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'f' || e.key === 'F') enterFullscreen();
+  });
+
+  // ============ Crossfade image switching ============
+  function switchImg(containerId, src, thumb) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const imgs = container.querySelectorAll('img');
+    const visible = imgs[0].classList.contains('fade-in') ? imgs[0] : imgs[1];
+    const hidden = visible === imgs[0] ? imgs[1] : imgs[0];
+
+    const preload = new Image();
+    preload.onload = function() {
+      hidden.src = src;
+      hidden.alt = thumb.querySelector('img')?.alt || '';
+      hidden.style.opacity = '0';
+      hidden.classList.remove('fade-out');
+      hidden.classList.add('fade-in');
+      void hidden.offsetWidth;
+      hidden.style.opacity = '1';
+      visible.style.opacity = '0';
+      visible.classList.remove('fade-in');
+      visible.classList.add('fade-out');
+    };
+    preload.src = src;
+
+    thumb.parentElement.querySelectorAll('.accom-thumb').forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+    thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    resetCarousel(containerId);
+  }
+
+  // ============ Auto-carousel system ============
+  const carousels = {};
+
+  function initCarousels() {
+    document.querySelectorAll('.accom-thumbs[data-carousel]').forEach(thumbsContainer => {
+      const containerId = thumbsContainer.dataset.carousel;
+      const thumbs = thumbsContainer.querySelectorAll('.accom-thumb');
+      if (thumbs.length < 2) return;
+
+      carousels[containerId] = {
+        thumbs: thumbs,
+        currentIndex: 0,
+        timer: null,
+        container: thumbsContainer,
+        paused: false
+      };
+
+      thumbs.forEach((thumb, idx) => {
+        thumb.addEventListener('click', function() {
+          const imgSrc = getBigSrc(this.querySelector('img')?.src || '');
+          switchImg(containerId, imgSrc, this);
+          carousels[containerId].currentIndex = idx;
+        });
+      });
+
+      thumbsContainer.addEventListener('mouseenter', () => {
+        carousels[containerId].paused = true;
+      });
+      thumbsContainer.addEventListener('mouseleave', () => {
+        carousels[containerId].paused = false;
+      });
+
+      startCarousel(containerId);
+    });
+  }
+
+  function getBigSrc(thumbSrc) {
+    // Convert thumbnail path to full-size path (local images)
+    return thumbSrc.replace('-thumb.jpg', '.jpg');
+  }
+
+  function startCarousel(containerId) {
+    const c = carousels[containerId];
+    if (!c) return;
+    clearInterval(c.timer);
+    c.timer = setInterval(() => {
+      if (c.paused) return;
+      const bigImg = document.getElementById(containerId);
+      if (!bigImg) return;
+      const rect = bigImg.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!inView) return;
+
+      c.currentIndex = (c.currentIndex + 1) % c.thumbs.length;
+      const thumb = c.thumbs[c.currentIndex];
+      const imgSrc = getBigSrc(thumb.querySelector('img')?.src || '');
+      switchImg(containerId, imgSrc, thumb);
+    }, 8000);
+  }
+
+  function resetCarousel(containerId) {
+    const c = carousels[containerId];
+    if (!c) return;
+    clearInterval(c.timer);
+    startCarousel(containerId);
+  }
+
+  document.addEventListener('DOMContentLoaded', initCarousels);
+</script>
+
+</body>
+</html>

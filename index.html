@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌏 家族旅遊計畫</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, #0f1923 0%, #1a2a3a 50%, #0d1f2d 100%);
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 1.1rem;
+      opacity: 0.6;
+      margin-bottom: 3rem;
+      font-weight: 300;
+    }
+    .trips { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .trip-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .trip-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      border-color: rgba(255,255,255,0.2);
+    }
+    .trip-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .trip-info { padding: 1.2rem; }
+    .trip-flag { font-size: 2rem; margin-bottom: 0.3rem; }
+    .trip-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .trip-meta { font-size: 0.9rem; opacity: 0.6; }
+    .trip-status {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 0.5rem;
+    }
+    .status-confirmed { background: #0f9d58; color: #fff; }
+    .status-planning { background: #f4b400; color: #1a1a1a; }
+    .status-draft { background: rgba(255,255,255,0.15); color: #ccc; }
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌏 家族旅遊計畫</h1>
+    <p class="subtitle">點擊查看完整行程簡報</p>
+    <div class="trips">
+      <a href="hanoi/" class="trip-card">
+        <img class="trip-img" src="https://images.unsplash.com/photo-1555921015-5532091f6026?w=600&h=400&fit=crop&q=80" alt="河內">
+        <div class="trip-info">
+          <div class="trip-flag">🇻🇳</div>
+          <div class="trip-title">河內家族旅行</div>
+          <div class="trip-meta">2026/3/5 – 3/10 ・ 6人 ・ 5天4夜</div>
+          <span class="trip-status status-confirmed">✅ 已確認</span>
+        </div>
+      </a>
+      <a href="sapporo/" class="trip-card">
+        <img class="trip-img" src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600&h=400&fit=crop&q=80" alt="札幌">
+        <div class="trip-info">
+          <div class="trip-flag">🇯🇵</div>
+          <div class="trip-title">札幌滑雪家族旅行</div>
+          <div class="trip-meta">2026/3/12 – 3/19 ・ 4人 ・ 8天7夜</div>
+          <span class="trip-status status-planning">📋 規劃中</span>
+        </div>
+      </a>
+      <a href="manila/" class="trip-card">
+        <img class="trip-img" src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=600&h=400&fit=crop&q=80" alt="馬尼拉">
+        <div class="trip-info">
+          <div class="trip-flag">🇵🇭</div>
+          <div class="trip-title">馬尼拉探索之旅</div>
+          <div class="trip-meta">待定</div>
+          <span class="trip-status status-draft">📝 草案</span>
+        </div>
+      </a>
+    </div>
+    <footer>Made with ❤️ by OpenClaw × 旅遊特務</footer>
+  </div>
+</body>
+</html>
