@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🇯🇵 四國深度之旅</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --primary: #1a7a5a;
+      --primary-dark: #145e46;
+      --accent: #e85d26;
+      --accent-light: #d94f1a;
+      --gold: #b8874a;
+      --bg: #fafaf7;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --text-light: #666;
+      --border: #e0e0dc;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+
+    /* ============ MOBILE: disable snap scrolling ============ */
+    @media (max-width: 768px) {
+      html { scroll-snap-type: none !important; }
+      .slide { scroll-snap-align: none !important; }
+    }
+    /* Also disable snap in landscape on tablets/phones */
+    @media (max-height: 500px) and (orientation: landscape) {
+      html { scroll-snap-type: none !important; }
+      .slide { scroll-snap-align: none !important; }
+    }
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fafaf7;
+      color: #1a1a1a;
+      font-size: 18px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ============ SLIDE SYSTEM ============ */
+    .slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+    .slide-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
+    .slide-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1200px;
+      padding: 2rem;
+    }
+
+    /* Dark overlay variations — hero/background-image slides keep white text */
+    .overlay-dark .slide-bg::after { background: rgba(0,0,0,0.65); }
+    .overlay-gradient .slide-bg::after { background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%); }
+    .overlay-left .slide-bg::after { background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); }
+    .overlay-bottom .slide-bg::after { background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); }
+    .overlay-soft .slide-bg::after { background: rgba(0,0,0,0.35); }
+    /* Slides with bg images keep white text */
+    .overlay-dark, .overlay-gradient, .overlay-left, .overlay-bottom, .overlay-soft { color: #fff; }
+
+    /* ============ HERO SLIDE ============ */
+    .hero-content {
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero-flag { font-size: 3rem; margin-bottom: 0.5rem; }
+    .hero-title {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
+      font-weight: 300;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+    }
+    .hero-dates {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 0.6rem 2rem;
+      border-radius: 50px;
+      font-weight: 500;
+      font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+      letter-spacing: 1px;
+    }
+    .hero-badge {
+      display: inline-block;
+      margin-top: 1.2rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 0.4rem 1.2rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      text-align: center;
+      opacity: 0.7;
+      animation: bounce 2s infinite;
+    }
+    .scroll-hint span { font-size: 0.75rem; display: block; margin-bottom: 0.25rem; }
+    @keyframes bounce {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    /* ============ SECTION HEADERS ============ */
+    .section-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.5;
+      margin-bottom: 0.3rem;
+    }
+    .section-heading {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+      font-weight: 300;
+      opacity: 0.7;
+      max-width: 600px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ============ INFO GRID ============ */
+    .info-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .pill {
+      background: rgba(0,0,0,0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+    }
+    /* Pills in overlay slides */
+    .overlay-dark .pill, .overlay-gradient .pill, .overlay-bottom .pill {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .pill .label { opacity: 0.6; font-size: 0.7rem; display: block; }
+    .pill .value { font-weight: 700; }
+
+    /* ============ MEMBERS ============ */
+    .members-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .member-card {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      text-align: center;
+      min-width: 110px;
+      transition: transform 0.3s;
+    }
+    .member-card:hover { transform: translateY(-4px); }
+    .member-card .avatar { font-size: 2.5rem; }
+    .member-card .name { font-weight: 700; font-size: 1rem; margin-top: 0.3rem; }
+    .member-card .age { font-size: 0.8rem; opacity: 0.6; }
+
+    /* ============ FLIGHT ============ */
+    .flight-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .flight-city { text-align: center; }
+    .flight-city .code {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: 3px;
+    }
+    .flight-city .detail {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    .flight-middle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+    }
+    .flight-middle .line {
+      width: 100px;
+      height: 2px;
+      background: rgba(255,255,255,0.3);
+      position: relative;
+      margin: 0.3rem 0;
+    }
+    .flight-middle .line::after {
+      content: '✈';
+      position: absolute;
+      right: -8px;
+      top: -10px;
+      font-size: 1.2rem;
+    }
+    .flight-middle .num {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* ============ MAP (full-screen within slide) ============ */
+    .map-slide {
+      position: relative;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .map-slide .slide-content {
+      position: absolute;
+      inset: 0;
+      max-width: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .map-slide .map-header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      padding: 1.5rem 2rem 1rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+      text-align: center;
+      color: #fff;
+    }
+    .map-slide .map-header h2 { margin: 0; }
+    .map-slide .map-header p { margin: .25rem 0 0; }
+    .map-container {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+    }
+    .map-container iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    /* iOS-style floating info card */
+    .map-float-card {
+      position: absolute;
+      top: 1.5rem; right: 1.5rem;
+      z-index: 20;
+      width: 320px;
+      background: rgba(30, 30, 30, 0.85);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      color: #fff;
+      overflow: hidden;
+      font-size: 15px;
+    }
+    .map-card-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: 1rem 1.25rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .map-card-header h3 { flex: 1; }
+    .map-card-toggle {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .map-card-toggle:hover { background: rgba(255,255,255,0.2); }
+    .map-card-body { padding: .75rem 1.25rem 1rem; }
+    .map-route-item {
+      display: flex;
+      gap: .75rem;
+      position: relative;
+      padding-bottom: .75rem;
+    }
+    .map-route-item:last-child { padding-bottom: 0; }
+    .map-route-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2.5px solid #fff;
+      flex-shrink: 0;
+      margin-top: 3px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    }
+    .map-route-line {
+      position: absolute;
+      left: 5.5px;
+      top: 20px;
+      bottom: 0;
+      width: 3px;
+      border-radius: 2px;
+      opacity: 0.5;
+    }
+    .map-route-info { flex: 1; }
+    .map-route-label { font-weight: 600; font-size: 15px; }
+    .map-route-detail { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+    .map-route-dist {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 2px;
+    }
+
+    /* Mobile: card at bottom */
+    @media (max-width: 768px) {
+      .map-float-card {
+        top: auto;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+      }
+    }
+    .map-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+      justify-content: center;
+    }
+    .map-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    .map-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ============ TIMELINE ============ */
+    .day-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .day-info { padding-right: 1rem; }
+    .day-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.7rem;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-right: 0.3rem;
+      color: #fff;
+    }
+    .badge-work { background: var(--accent); }
+    .badge-play { background: var(--primary); }
+    .badge-shop { background: #c2185b; }
+    .badge-home { background: #5e35b1; }
+    .badge-travel { background: #1565c0; }
+    .day-title {
+      font-size: clamp(1.4rem, 2.8vw, 2rem);
+      font-weight: 900;
+      margin: 0.3rem 0;
+      line-height: 1.2;
+    }
+    .day-location {
+      font-size: 0.85rem;
+      opacity: 0.6;
+      margin-bottom: 0.6rem;
+    }
+    .day-items { list-style: none; }
+    .day-items li {
+      padding: 0.2rem 0;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+      line-height: 1.5;
+    }
+    .day-items li::before {
+      content: '›';
+      color: var(--accent);
+      font-weight: 900;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+    .day-img {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    .day-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      min-height: 250px;
+      max-height: 400px;
+    }
+    .highlight {
+      background: rgba(232,93,38,0.12);
+      padding: 0 4px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    a.ext-link {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(232,93,38,0.3);
+      transition: border-color 0.2s;
+    }
+    a.ext-link:hover { border-color: var(--accent); }
+    /* ext-link inside overlay slides */
+    .overlay-dark a.ext-link, .overlay-gradient a.ext-link, .overlay-bottom a.ext-link {
+      color: #ff8f62;
+      border-bottom-color: rgba(255,143,98,0.3);
+    }
+
+    /* ============ FOOD GRID ============ */
+    .food-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    .food-card {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+    .food-card:hover { transform: translateY(-4px); }
+    .food-card-img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+    }
+    .food-card-body {
+      padding: 0.6rem 0.8rem;
+    }
+    .food-emoji { font-size: 1.8rem; flex-shrink: 0; }
+    .food-name { font-weight: 700; }
+    .food-desc { opacity: 0.7; }
+
+    /* ============ BUDGET ============ */
+    .budget-table {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .budget-table th {
+      background: #f5f5f2;
+      padding: 0.8rem 1.2rem;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #555;
+    }
+    .budget-table th:last-child { text-align: right; }
+    .budget-table td {
+      padding: 0.65rem 1.2rem;
+      font-size: 0.92rem;
+      border-bottom: 1px solid #f0f0ec;
+    }
+    .budget-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+    .budget-table tr:last-child td { border-bottom: none; }
+    .budget-total {
+      background: rgba(26,122,90,0.08) !important;
+    }
+    .budget-total td {
+      font-weight: 900 !important;
+      font-size: 1.05rem !important;
+      color: var(--accent);
+      border-bottom: none !important;
+    }
+    .budget-note {
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.5;
+      margin-top: 0.75rem;
+    }
+
+    /* ============ NOTES ============ */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.75rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .note-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .note-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .note-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.15rem; }
+    .note-text { font-size: 0.82rem; opacity: 0.7; line-height: 1.5; }
+
+    /* ============ GLOBAL MIN FONT SIZE 18px ============ */
+    body, p, li, td, th, span, div, a, label {
+      font-size: max(var(--local-fs, 1rem), 18px);
+    }
+    .section-num { --local-fs: 0.85rem; font-size: max(0.85rem, 18px); }
+    .pill .label { --local-fs: 0.85rem; font-size: max(0.85rem, 18px); }
+    .day-badge { --local-fs: 0.8rem; font-size: max(0.8rem, 18px); }
+    .day-location { font-size: max(0.95rem, 18px); }
+    .day-items li { font-size: max(1rem, 18px); }
+    .accom-card-meta { font-size: max(0.88rem, 18px); }
+    .accom-card-features li { font-size: max(0.92rem, 18px); }
+    .accom-card-price-note { font-size: max(0.82rem, 18px); }
+    .accom-card-link { font-size: max(0.92rem, 18px); }
+    .food-name { font-size: max(1rem, 18px); }
+    .food-desc { font-size: max(0.88rem, 18px); }
+    .note-text { font-size: max(0.92rem, 18px); }
+    .note-title { font-size: max(1rem, 18px); }
+    .budget-table td { font-size: max(1rem, 18px); }
+    .budget-table th { font-size: max(0.9rem, 18px); }
+    .budget-note { font-size: max(0.9rem, 18px); }
+    .member-card .age { font-size: max(0.9rem, 18px); }
+    .member-card .name { font-size: max(1rem, 18px); }
+    .flight-middle .num { font-size: max(0.85rem, 18px); }
+    .flight-city .detail { font-size: max(0.95rem, 18px); }
+    .scroll-hint span { font-size: max(0.85rem, 18px); }
+    .map-legend-item { font-size: max(0.95rem, 18px); }
+    .hero-badge { font-size: max(0.95rem, 18px); }
+    .pill .value { font-size: max(1rem, 18px); }
+    a.ext-link { font-size: max(0.92rem, 18px); }
+
+    /* ============ SPLIT LAYOUT: LEFT (text + side-thumbs) / RIGHT (big image) ============ */
+    .accom-layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .accom-left {
+      width: 50%;
+      min-width: 50%;
+      display: flex;
+      flex-direction: row;
+      gap: 0;
+      overflow: hidden;
+      background: #fff;
+    }
+    /* Text column — scrollable */
+    .accom-left > div:first-child {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 2.5rem 1.5rem 2.5rem 3rem;
+    }
+    /* Thumbnail sidebar — scrollable vertical strip */
+    .accom-thumbs {
+      flex: 0 0 270px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-content: start;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2.5rem 14px 2.5rem 14px;
+      border-left: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+    .accom-thumbs::-webkit-scrollbar { width: 3px; }
+    .accom-thumbs::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+    .accom-thumb {
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      min-width: 240px;
+      min-height: 240px;
+      aspect-ratio: 1 / 1;
+      border: 2px solid rgba(0,0,0,0.08);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .accom-thumb:hover { transform: scale(1.05); border-color: rgba(0,0,0,0.25); }
+    .accom-thumb.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(232,93,38,0.3); }
+    .accom-thumbs { scroll-behavior: smooth; }
+    .accom-thumbs--bottom { scroll-snap-type: x proximity; }
+    .accom-thumbs--bottom .accom-thumb { scroll-snap-align: center; }
+    .accom-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .accom-big-img {
+      width: 50%;
+      min-width: 50%;
+      height: 100vh;
+      overflow: hidden;
+      border-radius: 0;
+      position: relative;
+    }
+    .accom-big-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: opacity 1s ease-in-out;
+    }
+    .accom-big-img img.fade-out { opacity: 0; }
+    .accom-big-img img.fade-in { opacity: 1; }
+
+    /* ====== ITINERARY SLIDES: bottom horizontal thumb strip ====== */
+    .accom-left--itinerary {
+      flex-direction: column !important;
+    }
+    .accom-left--itinerary > div:first-child {
+      flex: 1 1 auto;
+      overflow-y: auto;
+    }
+    .accom-thumbs--bottom {
+      flex: 0 0 264px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 10px !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      padding: 12px 1.5rem 12px 3rem !important;
+      border-left: none !important;
+      border-top: 1px solid var(--border) !important;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+    .accom-thumbs--bottom::-webkit-scrollbar { height: 3px; width: auto; }
+    .accom-thumbs--bottom::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+    .accom-thumbs--bottom .accom-thumb {
+      flex: 0 0 240px;
+      width: 240px;
+      height: 240px;
+      min-width: 240px;
+      min-height: 240px;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+    }
+    @media (max-width: 768px) {
+      .accom-thumbs--bottom {
+        padding: 8px 1rem !important;
+      }
+      .accom-thumbs--bottom .accom-thumb {
+        flex: 0 0 120px;
+        width: 120px;
+        height: 120px;
+        min-width: 120px;
+        min-height: 120px;
+      }
+    }
+
+    /* Split-layout slides: slide-content must be full-width, no max-width, no padding */
+    .slide-split .slide-content {
+      max-width: none;
+      padding: 0;
+    }
+    @media (max-width: 768px) {
+      .accom-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: auto;
+      }
+      /* Re-order: big-img first, then left (text+thumbs) */
+      .accom-big-img {
+        order: 1;
+        width: 100%;
+        min-width: 100%;
+        height: 40vw;
+        min-height: 180px;
+        max-height: 260px;
+      }
+      .accom-left {
+        order: 2;
+        width: 100%;
+        min-width: 100%;
+        flex-direction: column-reverse; /* thumbs on top, text below */
+      }
+      /* (thumbs styling unified below) */
+      /* ALL slides on mobile: column-reverse so thumbs sit right below big image */
+      .accom-left--itinerary {
+        flex-direction: column-reverse !important;
+      }
+      /* All thumbs (including --bottom) uniform horizontal strip */
+      .accom-thumbs--bottom,
+      .accom-thumbs {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+        padding: 8px 0.75rem !important;
+        border-left: none !important;
+        border-top: none !important;
+        border-bottom: 1px solid var(--border) !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        max-height: none !important;
+      }
+      .accom-thumbs--bottom .accom-thumb,
+      .accom-thumbs .accom-thumb {
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        min-height: 56px !important;
+        border-radius: 6px !important;
+      }
+      /* Text area */
+      .accom-left > div:first-child { padding: 1rem 1rem 1.2rem; }
+      /* For itinerary slides, compact the text */
+      .accom-left--itinerary > div:first-child {
+        padding: 1rem 1rem 1.2rem;
+        max-height: none;
+      }
+    }
+
+    /* ============ FOOTER ============ */
+    .footer {
+      text-align: center;
+      padding: 3rem 1rem;
+      font-size: 0.75rem;
+      opacity: 0.3;
+    }
+
+    /* ============ NAV ============ */
+    .nav-bar {
+      position: fixed;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.15);
+      border: 1px solid rgba(0,0,0,0.25);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .nav-dot:hover, .nav-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.4);
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 768px) {
+      .slide-content { padding: 1.5rem 1rem; }
+      .day-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .day-img { max-height: 200px; overflow: hidden; }
+      .day-img img { min-height: 200px; max-height: 200px; }
+      .food-grid { grid-template-columns: 1fr 1fr; }
+      .food-card-img { height: 100px; }
+      .nav-bar { display: none; }
+      .members-row { gap: 0.6rem; }
+      .member-card { min-width: 90px; padding: 0.8rem; }
+      .member-card .avatar { font-size: 2rem; }
+    }
+
+    @media (min-width: 1400px) {
+      .slide-content { max-width: 1400px; }
+    }
+
+    /* ============ MOBILE: map slide needs full height ============ */
+    @media (max-width: 768px) {
+      .slide.map-slide {
+        min-height: 100vh !important;
+        height: 100vh !important;
+      }
+    }
+
+    /* ============ MOBILE: compact long itinerary text (Day 4-5-6) ============ */
+    @media (max-width: 768px) {
+      .day-title { font-size: clamp(1.2rem, 5vw, 1.6rem); margin: 0.2rem 0; }
+      .day-items li { padding: 0.1rem 0; font-size: 0.85rem; line-height: 1.4; }
+      .day-label-accent { font-size: 0.9rem; margin: 0.4rem 0 0.3rem !important; }
+      .day-location { margin-bottom: 0.4rem; }
+      .section-num { margin-bottom: 0.15rem; }
+      .section-heading { margin-bottom: 0.3rem; }
+    }
+
+    /* ============ LANDSCAPE MODE FIX ============ */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .slide {
+        min-height: auto !important;
+        height: auto !important;
+      }
+      /* Map slide MUST keep height in landscape */
+      .slide.map-slide {
+        min-height: 100vh !important;
+        height: 100vh !important;
+      }
+      /* Split layout: side by side but shorter */
+      .accom-layout {
+        flex-direction: row !important;
+        height: auto !important;
+        min-height: auto !important;
+      }
+      .accom-left {
+        width: 55% !important;
+        min-width: 55% !important;
+        order: unset !important;
+        flex-direction: column !important;
+      }
+      .accom-left > div:first-child {
+        padding: 0.75rem 1rem !important;
+        overflow-y: auto !important;
+        max-height: 80vh !important;
+      }
+      .accom-big-img {
+        order: unset !important;
+        width: 45% !important;
+        min-width: 45% !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+      }
+      /* Thumbnails horizontal in landscape */
+      .accom-thumbs, .accom-thumbs--bottom {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 4px !important;
+        padding: 6px 0.5rem !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        border-left: none !important;
+        border-top: 1px solid var(--border) !important;
+        max-height: none !important;
+      }
+      .accom-thumb, .accom-thumbs--bottom .accom-thumb {
+        flex: 0 0 48px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+      }
+      /* Compact text in landscape */
+      .day-title { font-size: 1.1rem !important; }
+      .day-items li { font-size: 0.78rem !important; line-height: 1.3 !important; padding: 0.05rem 0 !important; }
+      .hero-content { padding: 1rem; }
+      .hero-title { font-size: 2rem !important; }
+      .members-row { gap: 0.4rem; }
+      .member-card { min-width: 70px; padding: 0.5rem; }
+      .member-card .avatar { font-size: 1.5rem; }
+      .food-grid { grid-template-columns: repeat(4, 1fr); }
+      .food-card-img { height: 70px; }
+    }
+
+    /* ============ TV / WIDESCREEN MODE ============ */
+    @media (min-width: 1200px) and (min-height: 600px) {
+      html { scroll-snap-type: y mandatory; }
+      .slide { height: 100vh; min-height: auto; scroll-snap-align: start; }
+      .day-img img { min-height: 350px; max-height: 450px; }
+    }
+    /* Override: make sure mobile never gets mandatory snap even on tall phones */
+    @media (max-width: 768px) {
+      html { scroll-snap-type: none !important; }
+    }
+
+    /* Fullscreen presentation mode */
+    :fullscreen body, :-webkit-full-screen body {
+      scroll-snap-type: y mandatory;
+    }
+    :fullscreen .slide, :-webkit-full-screen .slide {
+      height: 100vh;
+      min-height: auto;
+    }
+
+    /* ============ NEXT STEPS CARD (white theme) ============ */
+    .next-steps-card {
+      margin-top: 2rem;
+      padding: 1rem 1.5rem;
+      background: rgba(232,93,38,0.06);
+      border: 1px solid rgba(232,93,38,0.2);
+      border-radius: 12px;
+      display: inline-block;
+    }
+
+    /* Day label color for white bg */
+    .day-label-accent { font-weight: 700; color: var(--accent); }
+
+  </style>
+</head>
+<body>
+<nav class="nav-bar" id="navBar">
+  <button class="nav-dot active" data-slide="0" title="首頁"></button>
+  <button class="nav-dot" data-slide="1" title="成員 & 航班"></button>
+  <button class="nav-dot" data-slide="2" title="路線地圖"></button>
+  <button class="nav-dot" data-slide="3" title="Day 1 抵達高松"></button>
+  <button class="nav-dot" data-slide="4" title="Day 2 高松→琴平→松山"></button>
+  <button class="nav-dot" data-slide="5" title="Day 3 松山城＋道後溫泉"></button>
+  <button class="nav-dot" data-slide="6" title="Day 4 冒險日→回高松"></button>
+  <button class="nav-dot" data-slide="7" title="Day 5 回家"></button>
+  <button class="nav-dot" data-slide="8" title="住宿 Dormy Inn
+高松中央公園前"></button>
+  <button class="nav-dot" data-slide="9" title="住宿 Dormy Inn
+松山"></button>
+  <button class="nav-dot" data-slide="10" title="住宿 道後グランドホテル
+★ 重頭戲 ★"></button>
+  <button class="nav-dot" data-slide="11" title="住宿 KOKO Hotel
+高松"></button>
+  <button class="nav-dot" data-slide="12" title="美食"></button>
+  <button class="nav-dot" data-slide="13" title="預算"></button>
+  <button class="nav-dot" data-slide="14" title="備忘"></button>
+</nav>
+
+<section class="slide overlay-gradient" id="slide-0">
+  <div class="slide-bg" style="background-image:url('https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1920&amp;h=1080&amp;fit=crop&amp;q=80')"></div>
+  <div class="slide-content hero-content">
+    <div class="hero-flag">🇯🇵</div>
+    <h1 class="hero-title">四國深度之旅</h1>
+    <p class="hero-subtitle">表兄弟二人行・烏龍麵×古城×溫泉秘境</p>
+    <div class="hero-dates">2026 / 4 / 12 (日) — 4 / 16 (四)</div>
+    <div><span class="hero-badge">📋 規劃中 — 機票＆住宿待訂</span></div>
+  </div>
+  <div class="scroll-hint"><span>向下滑動</span><span style="font-size:1.2rem">↓</span></div>
+</section>
+
+<section class="slide overlay-dark" id="slide-1">
+  <div class="slide-bg" style="background-image:url('https://images.unsplash.com/photo-1555921015-5532091f6026?w=1920&h=1080&fit=crop&q=80')"></div>
+  <div class="slide-content">
+    <div class="section-num">01</div>
+    <h2 class="section-heading">出遊成員 & 航班</h2>
+    <div class="members-row" style="margin-bottom:2rem;">
+      <div class="member-card"><div class="avatar">🧑‍💻</div><div class="name">Cyril</div><div class="age">38歲</div></div>
+      <div class="member-card"><div class="avatar">🤙</div><div class="name">表弟</div><div class="age"></div></div>
+    </div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:16px;padding:1.5rem;border:1px solid rgba(255,255,255,0.1);">
+      <div class="flight-row">
+        <div class="flight-city"><div class="code">TPE</div><div class="detail">4/12 (日) 14:30 起飛</div></div>
+        <div class="flight-middle"><div class="num">中華航空・經濟艙</div><div class="line"></div><div class="num">約 2h35m</div></div>
+        <div class="flight-city"><div class="code">TAK</div><div class="detail">4/12 (日) 18:05 抵達</div></div>
+      </div>
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:0.75rem 0;">
+      <div class="flight-row">
+        <div class="flight-city"><div class="code">TAK</div><div class="detail">4/16 (四) 待確認</div></div>
+        <div class="flight-middle"><div class="num">中華航空・經濟艙</div><div class="line"></div><div class="num">約 2h35m</div></div>
+        <div class="flight-city"><div class="code">TPE</div><div class="detail">4/16 (四) 待確認</div></div>
+      </div>
+      <div class="info-pills" style="justify-content:center;margin-top:1rem;margin-bottom:0;">
+        <div class="pill"><span class="label">航空公司</span><span class="value">中華航空</span></div>
+        <div class="pill"><span class="label">訂位代號</span><span class="value">待訂</span></div>
+        <div class="pill"><span class="label">時差</span><span class="value">日本 +1hr (UTC+9)</span></div>
+        <div class="pill"><span class="label">天數</span><span class="value">5天4夜</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide map-slide" id="slide-2" style="background:#f5f5f2;">
+  <div class="slide-content">
+    <div class="map-container" style="height:100vh;z-index:1000;">
+      <div id="leafletMap" style="width:100%;height:100%;"></div>
+    </div>
+    <div class="map-float-card" id="mapCard" style="z-index:1001;">
+      <div class="map-card-header">
+        <h3>路線總覽</h3>
+        <button class="map-card-toggle" id="mapCardToggle">▾</button>
+      </div>
+      <div class="map-card-body" id="mapCardBody">
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#4285F4;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#4285F4;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">✈️ 高松機場</div>
+            <div class="map-route-detail">抵達 &amp; 出發</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#0F9D58;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#0F9D58;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">🌿 栗林公園</div>
+            <div class="map-route-detail">米其林三星庭園</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#F4B400;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#F4B400;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">⛩️ 金刀比羅宮</div>
+            <div class="map-route-detail">1,368階石段挑戰</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#E85D26;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#E85D26;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">🏯 松山城</div>
+            <div class="map-route-detail">日本現存12天守</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#FF5722;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#FF5722;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">♨️ 道後溫泉</div>
+            <div class="map-route-detail">3000年歷史・神隱少女湯屋</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#9C27B0;border-color:#fff;"></div>
+          <div class="map-route-line" style="background:#9C27B0;"></div>
+          <div class="map-route-info">
+            <div class="map-route-label">🚲 島波海道（今治）</div>
+            <div class="map-route-detail">世界最美自行車道</div>
+          </div>
+        </div>
+        <div class="map-route-item">
+          <div class="map-route-dot" style="background:#4285F4;border-color:#fff;"></div>
+          
+          <div class="map-route-info">
+            <div class="map-route-label">🌅 高松港</div>
+            <div class="map-route-detail">瀨戶內海夕陽</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+function initLeafletMap() {
+  var mapEl = document.getElementById('leafletMap');
+  if (!mapEl) return;
+  var spots = [{"name":"高松機場","lat":34.2142,"lng":134.0156,"color":"#4285F4","emoji":"✈️","detail":"抵達 & 出發"},{"name":"栗林公園","lat":34.3297,"lng":134.0463,"color":"#0F9D58","emoji":"🌿","detail":"米其林三星庭園"},{"name":"金刀比羅宮","lat":34.1847,"lng":133.8184,"color":"#F4B400","emoji":"⛩️","detail":"1,368階石段挑戰"},{"name":"松山城","lat":33.8495,"lng":132.7654,"color":"#E85D26","emoji":"🏯","detail":"日本現存12天守"},{"name":"道後溫泉","lat":33.8526,"lng":132.7877,"color":"#FF5722","emoji":"♨️","detail":"3000年歷史・神隱少女湯屋"},{"name":"島波海道（今治）","lat":34.0662,"lng":132.9977,"color":"#9C27B0","emoji":"🚲","detail":"世界最美自行車道"},{"name":"高松港","lat":34.3504,"lng":134.0487,"color":"#4285F4","emoji":"🌅","detail":"瀨戶內海夕陽"}];
+  var map = L.map('leafletMap', {
+    zoomControl: true,
+    scrollWheelZoom: false,
+    dragging: true,
+    touchZoom: true
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap', maxZoom: 18
+  }).addTo(map);
+  var bounds = L.latLngBounds();
+  var lineCoords = [];
+  spots.forEach(function(s, i) {
+    var icon = L.divIcon({html: '<div style="font-size:1.5rem;text-shadow:0 1px 3px rgba(0,0,0,0.3);">'+s.emoji+'</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14]});
+    L.marker([s.lat, s.lng], {icon: icon}).addTo(map).bindPopup('<b>'+s.name+'</b><br>'+s.detail);
+    bounds.extend([s.lat, s.lng]);
+    lineCoords.push([s.lat, s.lng]);
+  });
+  // Draw polyline routes between consecutive stops
+  var routeColors = ['#4285F4', '#0F9D58', '#E85D26', '#F4B400', '#9C27B0', '#FF5722'];
+  for (var i = 0; i < lineCoords.length - 1; i++) {
+    L.polyline([lineCoords[i], lineCoords[i+1]], {
+      color: routeColors[i % routeColors.length],
+      weight: 4, opacity: 0.7, dashArray: '8,8'
+    }).addTo(map);
+  }
+  var isMobile = window.innerWidth <= 768;
+  map.fitBounds(bounds, {
+    padding: isMobile ? [30, 30] : [60, 340],
+    maxZoom: 14
+  });
+  // Fix Leaflet grey tiles: invalidateSize when map slide becomes visible
+  setTimeout(function() { map.invalidateSize(); }, 300);
+  var mapObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        setTimeout(function() {
+          map.invalidateSize();
+          map.fitBounds(bounds, { padding: isMobile ? [30, 30] : [60, 340] });
+        }, 100);
+      }
+    });
+  }, { threshold: 0.3 });
+  mapObs.observe(mapEl.closest('.slide') || mapEl);
+  // Card toggle
+  var toggle = document.getElementById('mapCardToggle');
+  var body = document.getElementById('mapCardBody');
+  if (toggle && body) {
+    toggle.addEventListener('click', function() {
+      var c = body.style.display === 'none';
+      body.style.display = c ? '' : 'none';
+      toggle.textContent = c ? '▾' : '▴';
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', initLeafletMap);
+</script>
+
+<section class="slide slide-split" id="slide-3" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">03 — 行程</div>
+          <span class="day-badge badge-travel">✈️ 移動日</span>
+          <span class="day-badge badge-play">🍜 烏龍麵</span>
+          <div class="day-title">Day 1<br>抵達高松</div>
+          <div class="day-location">📍 4/12（日） ｜ 香川・高松</div>
+
+          <ul class="day-items">
+            <li>14:30 桃園機場起飛 ✈️</li>
+            <li>18:05 抵達高松機場 🛬</li>
+            <li>19:00 機場巴士到高松駅（約45分鐘）🚌</li>
+            <li>19:45 入住 Dormy Inn 高松 🏨</li>
+            <li><span class="highlight">20:00 讚岐烏龍麵初體驗！</span> <a class="ext-link" href="https://maps.google.com/?q=%E8%AE%83%E5%B2%90%E3%81%86%E3%81%A9%E3%82%93%20%E9%AB%98%E6%9D%BE%E9%A7%85" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>21:00 Dormy Inn 天然溫泉＋免費宵夜拉麵 ♨️🍜</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="carousel-3">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=400&amp;h=300&amp;fit=crop" alt="高松機場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&amp;h=300&amp;fit=crop" alt="讚岐烏龍麵" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?w=400&amp;h=300&amp;fit=crop" alt="手打烏龍麵" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="飯店溫泉" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1480796927426-f609979314bd?w=400&amp;h=300&amp;fit=crop" alt="日本街景" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&amp;h=300&amp;fit=crop" alt="日本櫻花" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1528164344705-47542687000d?w=400&amp;h=300&amp;fit=crop" alt="高松港" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&amp;h=300&amp;fit=crop" alt="日本夜景" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-3">
+        <img src="https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1600&amp;h=1000&amp;fit=crop" alt="Day 1 抵達高松" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-4" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">04 — 行程</div>
+          <span class="day-badge badge-play">⛩️ 參拜</span>
+          <span class="day-badge badge-travel">🚃 移動</span>
+          <span class="day-badge badge-play">👨‍🍳 體驗</span>
+          <div class="day-title">Day 2<br>高松→琴平→松山</div>
+          <div class="day-location">📍 4/13（一） ｜ 香川→愛媛</div>
+
+          <ul class="day-items">
+            <li><span class="highlight">08:00 栗林公園 — 米其林三星日式庭園</span> <a class="ext-link" href="https://maps.google.com/?q=%E6%A0%97%E6%9E%97%E5%85%AC%E5%9C%92%20%E9%AB%98%E6%9D%BE" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>10:30 JR 到琴平（約1小時）🚃</li>
+            <li><span class="highlight">11:00 金刀比羅宮 — 1,368階石段挑戰！</span> <a class="ext-link" href="https://maps.google.com/?q=%E9%87%91%E5%88%80%E6%AF%94%E7%BE%85%E5%AE%AE" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li><span class="highlight">12:30 中野烏龍麵學校手作體驗 👨‍🍳</span> <a class="ext-link" href="https://maps.google.com/?q=%E4%B8%AD%E9%87%8E%E3%81%86%E3%81%A9%E3%82%93%E5%AD%A6%E6%A0%A1%20%E7%90%B4%E5%B9%B3" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>14:00 JR 特急到松山（約2.5小時）🚃</li>
+            <li>17:00 入住 Dormy Inn 松山 🏨</li>
+            <li>18:00 鯛魚飯晚餐 — 愛媛鄉土料理 🐟 <a class="ext-link" href="https://maps.google.com/?q=%E9%AF%9B%E3%82%81%E3%81%97%20%E6%9D%BE%E5%B1%B1" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>20:00 大街道商店街散步＋路面電車體驗 🚋</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="carousel-4">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&amp;h=300&amp;fit=crop" alt="栗林公園" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&amp;h=300&amp;fit=crop" alt="日式庭園" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1624601573012-efb68f3f150a?w=400&amp;h=300&amp;fit=crop" alt="神社石段" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&amp;h=300&amp;fit=crop" alt="烏龍麵體驗" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&amp;h=300&amp;fit=crop" alt="日本列車" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&amp;h=300&amp;fit=crop" alt="鯛魚飯" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1554797589-7241bb691973?w=400&amp;h=300&amp;fit=crop" alt="商店街" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1513407030348-c983a97b98d8?w=400&amp;h=300&amp;fit=crop" alt="路面電車" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-4">
+        <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1600&amp;h=1000&amp;fit=crop" alt="Day 2 高松→琴平→松山" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-5" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">05 — 行程</div>
+          <span class="day-badge badge-play">🏯 古城</span>
+          <span class="day-badge badge-play">♨️ 溫泉</span>
+          <span class="day-badge badge-play">🍽️ 會席料理</span>
+          <div class="day-title">Day 3<br>松山城＋道後溫泉</div>
+          <div class="day-location">📍 4/14（二） ｜ 愛媛・松山＋道後</div>
+
+          <ul class="day-items">
+            <li><span class="highlight">08:30 松山城 — 纜車上山，日本現存12天守之一</span> <a class="ext-link" href="https://maps.google.com/?q=%E6%9D%BE%E5%B1%B1%E5%9F%8E" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>10:30 少爺列車體驗 — 夏目漱石《少爺》蒸氣火車復刻 🚂</li>
+            <li>11:30 鍋燒烏龍麵午餐 🍲 <a class="ext-link" href="https://maps.google.com/?q=%E9%8D%8B%E7%84%BC%E3%81%8D%E3%81%86%E3%81%A9%E3%82%93%20%E6%9D%BE%E5%B1%B1" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>13:00 路面電車到道後溫泉 🚋</li>
+            <li>14:00 入住道後グランドホテル 🏨</li>
+            <li><span class="highlight">15:00 道後溫泉本館泡湯 — 3000年歷史！《神隱少女》湯屋原型</span> <a class="ext-link" href="https://maps.google.com/?q=%E9%81%93%E5%BE%8C%E6%B8%A9%E6%B3%89%E6%9C%AC%E9%A4%A8" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>16:30 道後商店街散策＋少爺糰子＋蜜柑果汁 🍡🍊</li>
+            <li><span class="highlight">18:00 旅館會席料理晚餐 — 瀬戸内海鮮＋鯛魚飯＋媛ポーク</span></li>
+            <li>20:00 夜間道後溫泉街漫步 🌙</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="carousel-5">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&amp;h=300&amp;fit=crop" alt="松山城" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&amp;h=300&amp;fit=crop" alt="道後溫泉" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&amp;h=300&amp;fit=crop" alt="溫泉街" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&amp;h=300&amp;fit=crop" alt="日式糰子" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1547592180-85f173990554?w=400&amp;h=300&amp;fit=crop" alt="蜜柑" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&amp;h=300&amp;fit=crop" alt="會席料理" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="溫泉旅館" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&amp;h=300&amp;fit=crop" alt="夜間溫泉街" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-5">
+        <img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1600&amp;h=1000&amp;fit=crop" alt="Day 3 松山城＋道後溫泉" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-6" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">06 — 行程</div>
+          <span class="day-badge badge-play">🚲 自行車</span>
+          <span class="day-badge badge-play">🌅 夕陽</span>
+          <span class="day-badge badge-play">🍻 乾杯</span>
+          <div class="day-title">Day 4<br>冒險日→回高松</div>
+          <div class="day-location">📍 4/15（三） ｜ 愛媛→香川</div>
+
+          <ul class="day-items">
+            <li><span class="highlight">選項A：島波海道自行車 — 世界最美自行車道！跨海大橋</span> <a class="ext-link" href="https://maps.google.com/?q=%E6%9D%A5%E5%B3%B6%E6%B5%B7%E5%B3%A1%E5%A4%A7%E6%A9%8B%20%E4%BB%8A%E6%B2%BB" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li><span class="highlight">選項B：下灘車站 — 日本最美車站 × 瀨戶內海</span> <a class="ext-link" href="https://maps.google.com/?q=%E4%B8%8B%E7%81%98%E9%A7%85" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li>14:00 JR 特急回高松（約2.5小時）🚃</li>
+            <li>17:00 入住 KOKO Hotel 高松 🏨</li>
+            <li>18:00 高松港看夕陽 🌅 <a class="ext-link" href="https://maps.google.com/?q=%E9%AB%98%E6%9D%BE%E6%B8%AF" target="_blank" style="font-size:0.8rem">📍</a></li>
+            <li><span class="highlight">19:00 骨付鳥＋啤酒 — 最後一晚的乾杯！🐔🍻</span> <a class="ext-link" href="https://maps.google.com/?q=%E9%AA%A8%E4%BB%98%E9%B3%A5%20%E4%B8%80%E9%B6%B4%20%E9%AB%98%E6%9D%BE" target="_blank" style="font-size:0.8rem">📍</a></li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="carousel-6">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&amp;h=300&amp;fit=crop" alt="島波海道" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&amp;h=300&amp;fit=crop" alt="瀨戶內海" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1476362555312-ab9e108a0b7e?w=400&amp;h=300&amp;fit=crop" alt="夕陽" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?w=400&amp;h=300&amp;fit=crop" alt="骨付鳥" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1528164344705-47542687000d?w=400&amp;h=300&amp;fit=crop" alt="港口" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=400&amp;h=300&amp;fit=crop" alt="啤酒" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&amp;h=300&amp;fit=crop" alt="自行車道" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1480796927426-f609979314bd?w=400&amp;h=300&amp;fit=crop" alt="日本風景" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-6">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1600&amp;h=1000&amp;fit=crop" alt="Day 4 冒險日→回高松" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-7" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left accom-left--itinerary">
+        <div>
+          <div class="section-num">07 — 行程</div>
+          <span class="day-badge badge-shop">🛍️ 採買</span>
+          <span class="day-badge badge-travel">✈️ 回程</span>
+          <div class="day-title">Day 5<br>回家</div>
+          <div class="day-location">📍 4/16（四） ｜ 高松→桃園</div>
+
+          <ul class="day-items">
+            <li>08:00 最後一碗烏龍麵！🍜</li>
+            <li>09:00 高松站伴手禮採買 — 小豆島橄欖油、烏龍麵、蜜柑 🛍️</li>
+            <li>依班機時間 機場巴士到高松機場（約45分鐘）🚌</li>
+            <li>✈️ 中華航空直飛回台灣 — 帶著滿滿回憶！🇹🇼</li>
+          </ul>
+        </div>
+        <div class="accom-thumbs accom-thumbs--bottom" data-carousel="carousel-7">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&amp;h=300&amp;fit=crop" alt="烏龍麵" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1528164344705-47542687000d?w=400&amp;h=300&amp;fit=crop" alt="高松站" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=400&amp;h=300&amp;fit=crop" alt="機場" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1547592180-85f173990554?w=400&amp;h=300&amp;fit=crop" alt="伴手禮" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1480796927426-f609979314bd?w=400&amp;h=300&amp;fit=crop" alt="日本" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&amp;h=300&amp;fit=crop" alt="櫻花" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&amp;h=300&amp;fit=crop" alt="風景" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&amp;h=300&amp;fit=crop" alt="四國" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-7">
+        <img src="https://images.unsplash.com/photo-1590559899731-a382839e5549?w=1600&amp;h=1000&amp;fit=crop" alt="Day 5 回家" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-8" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left">
+        <div>
+          <div class="section-num">住宿 1</div>
+          <span class="day-badge badge-play">♨️ 天然溫泉</span>
+          <span class="day-badge badge-play">🍜 免費宵夜</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.5</span>
+          <div class="day-title">🏨 Dormy Inn<br>高松中央公園前</div>
+          <div class="day-location">📍 高松市中心 300m ｜ 雙人房 ｜ 4/12 入住</div>
+          <ul class="day-items">
+            <li>♨️ 天然溫泉大浴場（男女分開）</li>
+            <li>🍜 21:30 免費宵夜拉麵！</li>
+            <li>📍 高松中央公園旁，駅步行5分</li>
+            <li>🧴 免費洗衣機＋烘衣機</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$10,581</span><span style="opacity:0.6;"> /晚</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">1晚 ~NT$10,581</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.booking.com/hotel/jp/dormy-inn-takamatsu-chuo-koenmae.html" target="_blank">Booking.com</a>
+          </div>
+        </div>
+        <div class="accom-thumbs" data-carousel="carousel-8">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="Dormy Inn 高松" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&amp;h=300&amp;fit=crop" alt="飯店房間" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1540518614846-7eded433c457?w=400&amp;h=300&amp;fit=crop" alt="溫泉" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-8">
+        <img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1600&amp;h=1000&amp;fit=crop&amp;q=85" alt="Dormy Inn
+高松中央公園前" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-9" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left">
+        <div>
+          <div class="section-num">住宿 2</div>
+          <span class="day-badge badge-play">♨️ 溫泉</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.5</span>
+          <div class="day-title">🏨 Dormy Inn<br>松山</div>
+          <div class="day-location">📍 松山市中心 ｜ 雙人房 ｜ 4/13 入住</div>
+          <ul class="day-items">
+            <li>♨️ 溫泉大浴場</li>
+            <li>🍜 21:30 免費宵夜拉麵</li>
+            <li>📍 松山市區交通便利</li>
+            <li>🚋 路面電車站近</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$7,000</span><span style="opacity:0.6;"> /晚</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">1晚 ~NT$7,000</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.booking.com/hotel/jp/dormy-inn-matsuyama.html" target="_blank">Booking.com</a>
+          </div>
+        </div>
+        <div class="accom-thumbs" data-carousel="carousel-9">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&amp;h=300&amp;fit=crop" alt="Dormy Inn 松山" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="飯店" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&amp;h=300&amp;fit=crop" alt="房間" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-9">
+        <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&amp;h=1000&amp;fit=crop&amp;q=85" alt="Dormy Inn
+松山" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-10" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left">
+        <div>
+          <div class="section-num">住宿 3</div>
+          <span class="day-badge badge-play">♨️ 溫泉旅館</span>
+          <span class="day-badge badge-play">🍽️ 一泊二食</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 一泊二食</span>
+          <div class="day-title">♨️ 道後グランドホテル<br>★ 重頭戲 ★</div>
+          <div class="day-location">📍 道後溫泉街，步行本館5分 ｜ 和室 10-12疊 ｜ 4/14 入住</div>
+          <ul class="day-items">
+            <li>♨️ 源泉溫泉大浴場（媛の湯）</li>
+            <li>🍽️ 晚餐：瀬戸内會席料理（鯛魚飯＋媛ポークしゃぶ鍋）</li>
+            <li>🥐 早餐：和洋自助早餐</li>
+            <li>📍 道後溫泉本館步行5分鐘</li>
+            <li>👘 免費色浴衣可穿出門散步</li>
+            <li>🌸 和風情緒滿點！道後溫泉街核心位置</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$8,000</span><span style="opacity:0.6;"> /晚（含晚餐＋早餐）</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">1晚 ~NT$8,000</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.dogo-grand.co.jp/" target="_blank">官網</a>
+          </div>
+        </div>
+        <div class="accom-thumbs" data-carousel="carousel-10">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&amp;h=300&amp;fit=crop" alt="道後溫泉" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&amp;h=300&amp;fit=crop" alt="會席料理" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="溫泉旅館" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-10">
+        <img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1600&amp;h=1000&amp;fit=crop&amp;q=85" alt="道後グランドホテル
+★ 重頭戲 ★" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-split" id="slide-11" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="accom-layout">
+      <div class="accom-left">
+        <div>
+          <div class="section-num">住宿 4</div>
+          <span class="day-badge badge-play">🥐 含早餐</span>
+          <span class="day-badge badge-travel">📍 駅近</span>
+          <span style="display:inline-block;background:var(--primary);color:#fff;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700;vertical-align:middle;">⭐ 8.6</span>
+          <div class="day-title">🏨 KOKO Hotel<br>高松</div>
+          <div class="day-location">📍 高松駅步行3分鐘 ｜ 標準雙人房 ｜ 4/15 入住</div>
+          <ul class="day-items">
+            <li>🥐 含早餐</li>
+            <li>📍 高松駅步行3分鐘，超方便</li>
+            <li>🧳 隔天搭機場巴士最佳據點</li>
+            <li>🆕 前身為 Hotel Wing，整新過</li>
+          </ul>
+          <div style="margin-top:0.5rem;background:rgba(232,93,38,0.08);display:inline-block;padding:0.4rem 0.8rem;border-radius:10px;">
+            <span style="font-size:1.3rem;font-weight:900;color:var(--accent);">NT$5,864</span><span style="opacity:0.6;"> /晚</span>
+            <span style="margin-left:0.5rem;font-weight:700;color:var(--accent);">1晚 ~NT$5,864</span>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <a class="ext-link" href="https://www.booking.com/hotel/jp/hoteruuinguintanasiyonarugao-song.html" target="_blank">Booking.com</a>
+          </div>
+        </div>
+        <div class="accom-thumbs" data-carousel="carousel-11">
+          <div class="accom-thumb active"><img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&amp;h=300&amp;fit=crop" alt="KOKO Hotel 高松" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&amp;h=300&amp;fit=crop" alt="飯店" loading="lazy"></div>
+          <div class="accom-thumb"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&amp;h=300&amp;fit=crop" alt="房間" loading="lazy"></div>
+        </div>
+      </div>
+      <div class="accom-big-img" id="carousel-11">
+        <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600&amp;h=1000&amp;fit=crop&amp;q=85" alt="KOKO Hotel
+高松" class="fade-in">
+        <img src="" alt="" class="fade-out" style="opacity:0;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide overlay-bottom" id="slide-12">
+  <div class="slide-bg" style="background-image:url('https://images.unsplash.com/photo-1590559899731-a382839e5549?w=1920&amp;h=1080&amp;fit=crop&amp;q=80')"></div>
+  <div class="slide-content" style="align-self:flex-end;padding-bottom:3rem;">
+    <div class="section-num">12</div>
+    <h2 class="section-heading">🍜 四國必吃清單</h2>
+    <p class="section-desc">烏龍麵王國 × 瀨戶內海鮮 × 愛媛蜜柑</p>
+    <div class="food-grid">
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?w=400&amp;h=300&amp;fit=crop" alt="🍜 讚岐烏龍麵" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍜 讚岐烏龍麵</div><div class="food-desc">高松名物！Q彈有嚼勁，在地人每天吃</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?w=400&amp;h=300&amp;fit=crop" alt="🐔 骨付鳥" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🐔 骨付鳥</div><div class="food-desc">帶骨雞腿大蒜香料燒烤，配啤酒絕配</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&amp;h=300&amp;fit=crop" alt="🐟 鯛魚飯" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🐟 鯛魚飯</div><div class="food-desc">愛媛鄉土料理，整條鯛魚與米飯炊煮</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&amp;h=300&amp;fit=crop" alt="🍡 少爺糰子" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍡 少爺糰子</div><div class="food-desc">道後溫泉名物，三色糰子泡湯後必吃</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1547592180-85f173990554?w=400&amp;h=300&amp;fit=crop" alt="🍊 愛媛蜜柑" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍊 愛媛蜜柑</div><div class="food-desc">柑橘王國！蜜柑果汁自販機一定要試</div></div>
+      </div>
+      <div class="food-card">
+        <img class="food-card-img" src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&amp;h=300&amp;fit=crop" alt="🍲 鍋燒烏龍麵" loading="lazy">
+        <div class="food-card-body"><div class="food-name">🍲 鍋燒烏龍麵</div><div class="food-desc">松山名物！鋁鍋煮烏龍麵加蛋天婦羅</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="slide-13" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="section-num">13</div>
+    <h2 class="section-heading" style="text-align:center;">💰 預算估算</h2>
+    <p class="section-desc" style="text-align:center;margin:0 auto 1.5rem;">全家 2 人</p>
+    <table class="budget-table">
+      <thead><tr><th>項目</th><th>說明</th><th>預估金額</th></tr></thead>
+      <tbody>
+        <tr><td>✈️ 機票</td><td>華航直飛 TPE⇄TAK × 2人來回</td><td>NT$46,060</td></tr>
+        <tr><td>🏨 住宿</td><td>4晚（含1晚溫泉一泊二食）</td><td>NT$31,445</td></tr>
+        <tr><td>🍜 餐飲</td><td>5天 × 2人（Day3晚餐已含）</td><td>NT$10,000</td></tr>
+        <tr><td>🚃 交通</td><td>ALL Shikoku Rail Pass 5日 × 2</td><td>NT$7,480</td></tr>
+        <tr><td>🎫 體驗</td><td>烏龍麵學校、松山城、自行車</td><td>NT$3,000</td></tr>
+        <tr><td>📱 雜費</td><td>eSIM、伴手禮、預備金</td><td>NT$2,015</td></tr>
+        <tr class="budget-total"><td colspan="2">合計</td><td>NT$100,000</td></tr>
+      </tbody>
+    </table>
+    <p class="budget-note">💡 Google Flights 分析：目前票價偏低，比平常便宜約 NT$2,900。建議盡早訂票！</p>
+  </div>
+</section>
+
+<section class="slide" id="slide-14" style="background:#fafaf7;">
+  <div class="slide-content">
+    <div class="section-num">14</div>
+    <h2 class="section-heading" style="text-align:center;">📝 行前備忘</h2>
+    <div class="notes-grid">
+      <div class="note-card"><div class="note-icon">🛂</div><div><div class="note-title">簽證</div><div class="note-text">日本免簽 90 天觀光，確認護照效期 &gt; 6 個月</div></div></div>
+      <div class="note-card"><div class="note-icon">💴</div><div><div class="note-title">換匯</div><div class="note-text">建議帶 ¥50,000 日幣現金，JCB 信用卡在日本最方便</div></div></div>
+      <div class="note-card"><div class="note-icon">🌡️</div><div><div class="note-title">天氣</div><div class="note-text">4月中四國 15-22°C，帶薄外套＋雨具。可能有晚開櫻花 🌸</div></div></div>
+      <div class="note-card"><div class="note-icon">🚃</div><div><div class="note-title">交通</div><div class="note-text">ALL Shikoku Rail Pass 可搭 JR 全線＋路面電車，建議先在台灣買 MCO</div></div></div>
+      <div class="note-card"><div class="note-icon">👟</div><div><div class="note-title">裝備</div><div class="note-text">金刀比羅宮 1,368 階！務必穿好走的鞋。島波海道騎車可穿運動服</div></div></div>
+      <div class="note-card"><div class="note-icon">♨️</div><div><div class="note-title">溫泉</div><div class="note-text">道後溫泉本館有刺青限制，入浴前確認規定。帶小毛巾入場</div></div></div>
+      <div class="note-card"><div class="note-icon">📱</div><div><div class="note-title">網路</div><div class="note-text">eSIM 或 WiFi 分享器，下載 Google Maps 離線地圖</div></div></div>
+      <div class="note-card"><div class="note-icon">⏰</div><div><div class="note-title">時差</div><div class="note-text">日本比台灣快 1 小時（UTC+9），四國 JR 班次較少注意時刻表</div></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  Made with ❤️ by OpenClaw × 四國深度之旅<br>
+  <span style="cursor:pointer;text-decoration:underline;" onclick="enterFullscreen()">📺 全螢幕簡報模式</span>
+</footer>
+
+<script>
+function initMap() {
+  var mapEl = document.getElementById('gmap');
+  if (!mapEl) return;
+  var map = new google.maps.Map(mapEl, {
+    center: {lat: 21.12, lng: 105.92},
+    zoom: 11,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    zoomControl: true,
+    styles: [
+      {elementType:'geometry', stylers:[{color:'#1d2c4d'}]},
+      {elementType:'labels.text.fill', stylers:[{color:'#8ec3b9'}]},
+      {elementType:'labels.text.stroke', stylers:[{color:'#1a3646'}]},
+      {featureType:'water', elementType:'geometry', stylers:[{color:'#17263c'}]},
+      {featureType:'road', elementType:'labels', stylers:[{visibility:'off'}]},
+      {featureType:'road.highway', elementType:'geometry', stylers:[{color:'#2c6675'}]},
+      {featureType:'road.highway', elementType:'geometry.stroke', stylers:[{color:'#255d6a'}]},
+      {featureType:'road.arterial', elementType:'geometry', stylers:[{color:'#263c5a'}]},
+      {featureType:'road.local', elementType:'geometry', stylers:[{color:'#1e2d45'}]},
+      {featureType:'poi', elementType:'geometry', stylers:[{color:'#1a3346'}]},
+      {featureType:'poi', elementType:'labels.text.fill', stylers:[{color:'#6a9e90'}]},
+      {featureType:'poi', elementType:'labels.text.stroke', stylers:[{color:'#1a3646'}]},
+      {featureType:'poi.park', elementType:'geometry', stylers:[{color:'#1a4435'}]},
+      {featureType:'transit', elementType:'geometry', stylers:[{color:'#2f3948'}]},
+      {featureType:'transit.station', elementType:'labels.text.fill', stylers:[{color:'#8ec3b9'}]},
+      {featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{color:'#7eb8a8'}]},
+      {featureType:'administrative.neighborhood', stylers:[{visibility:'off'}]},
+      {featureType:'landscape.man_made', elementType:'geometry', stylers:[{color:'#1a2744'}]},
+      {featureType:'landscape.natural', elementType:'geometry', stylers:[{color:'#1a3346'}]}
+    ]
+  });
+  var spots = [
+    {id:'A', name:'內排國際機場', sub:'Noi Bai International Airport', detail:'3/5 10:20 抵達 ✈️', lat:21.2187, lng:105.8042, color:'#4285F4', icon:'✈️'},
+    {id:'B', name:'Senna Wellness Retreat', sub:'北寧', detail:'Day 1-2 ｜ 辦事 + 度假村 🌿', lat:21.1861, lng:106.0763, color:'#0F9D58', icon:'🌿'},
+    {id:'C', name:'還劍湖・河內老城區', sub:'Hoàn Kiếm Lake', detail:'Day 3-6 ｜ 觀光美食 🏮', lat:21.0285, lng:105.8542, color:'#F4B400', icon:'🏮'}
+  ];
+  spots.forEach(function(s) {
+    var marker = new google.maps.Marker({
+      position: {lat: s.lat, lng: s.lng}, map: map,
+      label: {text: s.id, color: '#fff', fontWeight: '700', fontSize: '14px'},
+      icon: {path: google.maps.SymbolPath.CIRCLE, fillColor: s.color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3, scale: 16}
+    });
+    var infoContent = '<div style="font-family:\'Noto Sans TC\',sans-serif;padding:4px;min-width:180px;"><div style="font-size:16px;font-weight:700;margin-bottom:4px;">' + s.icon + ' ' + s.name + '</div><div style="font-size:13px;color:#666;margin-bottom:2px;">' + s.sub + '</div><div style="font-size:13px;color:#333;">' + s.detail + '</div></div>';
+    var info = new google.maps.InfoWindow({content: infoContent});
+    marker.addListener('click', function() { info.open(map, marker); });
+  });
+  var ds = new google.maps.DirectionsService();
+  var colors = ['#4285F4', '#0F9D58'];
+  var routes = [
+    {origin:{lat:21.2187,lng:105.8042}, destination:{lat:21.1861,lng:106.0763}, distEl:'distAB'},
+    {origin:{lat:21.1861,lng:106.0763}, destination:{lat:21.0285,lng:105.8542}, distEl:'distBC'}
+  ];
+  routes.forEach(function(r, i) {
+    ds.route({origin: r.origin, destination: r.destination, travelMode: 'DRIVING'}, function(result, status) {
+      if (status === 'OK') {
+        new google.maps.DirectionsRenderer({map: map, directions: result, suppressMarkers: true, polylineOptions: {strokeColor: colors[i], strokeWeight: 6, strokeOpacity: 0.85}});
+        var leg = result.routes[0].legs[0];
+        var el = document.getElementById(r.distEl);
+        if (el) el.textContent = '🚗 ' + leg.distance.text + '・' + leg.duration.text;
+      }
+    });
+  });
+  var bounds = new google.maps.LatLngBounds();
+  spots.forEach(function(s) { bounds.extend({lat:s.lat, lng:s.lng}); });
+  // Mobile: card is at bottom, needs more bottom padding; Desktop: card is at right
+  var isMobile = window.innerWidth <= 768;
+  var padding = isMobile
+    ? {top: 60, bottom: 320, left: 30, right: 30}
+    : {top: 60, bottom: 60, left: 60, right: 340};
+  map.fitBounds(bounds, padding);
+  var toggle = document.getElementById('mapCardToggle');
+  var body = document.getElementById('mapCardBody');
+  if (toggle && body) {
+    toggle.addEventListener('click', function() {
+      var collapsed = body.style.display === 'none';
+      body.style.display = collapsed ? '' : 'none';
+      toggle.textContent = collapsed ? '▾' : '▴';
+    });
+  }
+}
+</script>
+<script>
+  // ============ Fullscreen presentation ============
+  function enterFullscreen() {
+    document.documentElement.requestFullscreen?.() ||
+    document.documentElement.webkitRequestFullscreen?.();
+  }
+
+  // ============ Nav dots ============
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.nav-dot');
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const idx = parseInt(dot.dataset.slide);
+      slides[idx]?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = [...slides].indexOf(e.target);
+        dots.forEach(d => d.classList.remove('active'));
+        dots[idx]?.classList.add('active');
+      }
+    });
+  }, { threshold: 0.4 });
+  slides.forEach(s => obs.observe(s));
+
+  // ============ Keyboard navigation ============
+  document.addEventListener('keydown', (e) => {
+    const current = [...dots].findIndex(d => d.classList.contains('active'));
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') && current < slides.length - 1) {
+      e.preventDefault();
+      slides[current + 1]?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowLeft') && current > 0) {
+      e.preventDefault();
+      slides[current - 1]?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (e.key === 'f' || e.key === 'F') enterFullscreen();
+  });
+
+  // ============ Crossfade image switching ============
+  function switchImg(containerId, src, thumb) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const imgs = container.querySelectorAll('img');
+    const visible = imgs[0].classList.contains('fade-in') ? imgs[0] : imgs[1];
+    const hidden = visible === imgs[0] ? imgs[1] : imgs[0];
+
+    // Preload new image, then crossfade
+    const preload = new Image();
+    preload.onload = function() {
+      hidden.src = src;
+      hidden.alt = thumb.querySelector('img')?.alt || '';
+      hidden.style.opacity = '0';
+      hidden.classList.remove('fade-out');
+      hidden.classList.add('fade-in');
+      // Force reflow
+      void hidden.offsetWidth;
+      hidden.style.opacity = '1';
+      visible.style.opacity = '0';
+      visible.classList.remove('fade-in');
+      visible.classList.add('fade-out');
+    };
+    preload.src = src;
+
+    // Update active thumb & scroll into center
+    thumb.parentElement.querySelectorAll('.accom-thumb').forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+    thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // Reset auto-carousel timer for this container
+    resetCarousel(containerId);
+  }
+
+  // ============ Auto-carousel system ============
+  const carousels = {};
+
+  function initCarousels() {
+    document.querySelectorAll('.accom-thumbs[data-carousel]').forEach(thumbsContainer => {
+      const containerId = thumbsContainer.dataset.carousel;
+      const thumbs = thumbsContainer.querySelectorAll('.accom-thumb');
+      if (thumbs.length < 2) return;
+
+      carousels[containerId] = {
+        thumbs: thumbs,
+        currentIndex: 0,
+        timer: null,
+        container: thumbsContainer,
+        paused: false
+      };
+
+      // Attach click handlers
+      thumbs.forEach((thumb, idx) => {
+        thumb.addEventListener('click', function() {
+          const imgSrc = getBigSrc(this.querySelector('img')?.src || '');
+          switchImg(containerId, imgSrc, this);
+          carousels[containerId].currentIndex = idx;
+        });
+      });
+
+      // Pause on hover
+      thumbsContainer.addEventListener('mouseenter', () => {
+        carousels[containerId].paused = true;
+      });
+      thumbsContainer.addEventListener('mouseleave', () => {
+        carousels[containerId].paused = false;
+      });
+
+      // Start carousel only when visible
+      startCarousel(containerId);
+    });
+  }
+
+  function getBigSrc(thumbSrc) {
+    // Convert Unsplash thumb params to big params
+    if (thumbSrc.includes('images.unsplash.com') || thumbSrc.includes('plus.unsplash.com')) {
+      return thumbSrc.replace(/\?.*$/, '?w=1600&h=1000&fit=crop&q=85');
+    }
+    return thumbSrc;
+  }
+
+  function startCarousel(containerId) {
+    const c = carousels[containerId];
+    if (!c) return;
+    clearInterval(c.timer);
+    c.timer = setInterval(() => {
+      if (c.paused) return;
+      // Only advance if slide is visible
+      const bigImg = document.getElementById(containerId);
+      if (!bigImg) return;
+      const rect = bigImg.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!inView) return;
+
+      c.currentIndex = (c.currentIndex + 1) % c.thumbs.length;
+      const thumb = c.thumbs[c.currentIndex];
+      const imgSrc = getBigSrc(thumb.querySelector('img')?.src || '');
+      switchImg(containerId, imgSrc, thumb);
+    }, 8000);
+  }
+
+  function resetCarousel(containerId) {
+    const c = carousels[containerId];
+    if (!c) return;
+    clearInterval(c.timer);
+    startCarousel(containerId);
+  }
+
+  // Initialize carousels on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', initCarousels);
+
+</script>
+
+</body>
+</html>
